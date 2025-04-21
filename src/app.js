@@ -1,0 +1,51 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors'); // Importado o middleware cors
+const app = express();
+
+// Conexão com MongoDB
+mongoose
+  .connect('mongodb://localhost:27017/case-api')
+  .then(() => console.log('Conectado ao MongoDB'))
+  .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
+
+// Middleware para habilitar o CORS
+app.use(
+  cors({
+    origin: 'http://127.0.0.1:5500', // Certifique-se de que esta é a origem correta do seu frontend
+    methods: 'POST', // Inclua todos os métodos que você usa (GET, POST, etc.)
+    allowedHeaders: 'Content-Type, Authorization' // Certifique-se de ter 'Authorization' aqui!
+  })
+);
+
+// Middleware para parsing de JSON
+app.use(express.json());
+
+// Importa a função createAdmin para executá-la ao iniciar
+require('./create/createAdmin');
+
+// Rotas
+const authRoutes = require('./routes/auth.routes'); // Login, geração de token
+const protectedRoutes = require('./routes/protected.routes'); // Rotas protegidas genéricas (tipo /api/protegido)
+const userRoutes = require('./routes/user.routes'); // Cadastro, update e listagem de usuários
+const caseRoutes = require('./routes/case.routes'); // Gerenciamento de casos (CRUD)
+const evidenceRoutes = require('./routes/evidence.routes'); // Gerenciamento de evidências
+const laudoRoutes = require('./routes/laudo.routes'); // Gerenciamento de laudos
+const relatorioRoutes = require('./routes/relatorio.routes'); // criação do relatório final
+const historicoRoutes = require('./routes/historico.routes'); // Gerenciamento de histórico
+
+app.use('/api', authRoutes); // /api/login
+app.use('/api', protectedRoutes); // /api/protegido
+app.use('/api', userRoutes); // /api/usuarios
+app.use('/api/casos', caseRoutes); // /api/casos
+app.use('/api/evidencias', evidenceRoutes); // /api/evidencias
+app.use('/api/laudos', laudoRoutes); // /api/laudos
+app.use('/api/relatorios', relatorioRoutes); // /api/relatorio
+app.use('/api/historico', historicoRoutes); // /api/historico
+
+// Rota de teste
+app.get('/', (req, res) => {
+  res.json({ message: 'API de Gerenciamento de Casos Periciais está funcionando!' });
+});
+
+module.exports = app;
