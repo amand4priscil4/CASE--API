@@ -13,13 +13,7 @@ mongoose
   .catch(err => console.error('Erro ao conectar ao MongoDB Atlas:', err));
 
 // Middleware para habilitar o CORS
-app.use(
-  cors({
-    origin: 'http://127.0.0.1:5500', // Ou o domínio do seu frontend
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: '*' // Permite todos os cabeçalhos
-  })
-);
+app.use(cors());
 
 // Middleware para parsing de JSON
 app.use(express.json());
