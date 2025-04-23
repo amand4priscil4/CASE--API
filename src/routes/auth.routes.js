@@ -1,42 +1,51 @@
 const express = require('express');
-const router = express.Router();
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const User = require('../models/user.model');
+const mongoose = require('mongoose');
+const cors = require('cors'); // Importado o middleware cors
+const app = express();
 
-// Rota de login
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+// Conexão com MongoDB
+mongoose
+  .connect('mongodb://localhost:27017/case-api')
+  .then(() => console.log('Conectado ao MongoDB'))
+  .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
 
-  // Verificar se o email e a senha foram fornecidos
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email e senha são obrigatórios' });
-  }
+// Middleware para habilitar o CORS
+app.use(
+  cors({
+    origin: 'http://127.0.0.1:5500', // Ou o domínio do seu frontend
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: '*' // Permite todos os cabeçalhos
+  })
+);
 
-  try {
-    // Buscar o usuário pelo email
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Credenciais inválidas' });
-    }
+// Middleware para parsing de JSON
+app.use(express.json());
 
-    // Comparar a senha fornecida com a senha armazenada (hash)
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Credenciais inválidas' });
-    }
+// Importa a função createAdmin para executá-la ao iniciar
+require('./create/createAdmin');
 
-    // Gerar o token JWT
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'sua-chave-secreta',
-      { expiresIn: '1h' } // Token expira em 1 hora
-    );
+// Rotas
+const authRoutes = require('./routes/auth.routes'); // Login, geração de token
+const protectedRoutes = require('./routes/protected.routes'); // Rotas protegidas genéricas (tipo /api/protegido)
+const userRoutes = require('./routes/user.routes'); // Cadastro, update e listagem de usuários
+const caseRoutes = require('./routes/case.routes'); // Gerenciamento de casos (CRUD)
+const evidenceRoutes = require('./routes/evidence.routes'); // Gerenciamento de evidências
+const laudoRoutes = require('./routes/laudo.routes'); // Gerenciamento de laudos
+const relatorioRoutes = require('./routes/relatorio.routes'); // criação do relatório final
+const historicoRoutes = require('./routes/historico.routes'); // Gerenciamento de histórico
 
-    res.status(200).json({ token, user: { id: user._id, email: user.email, role: user.role } });
-  } catch (error) {
-    res.status(500).json({ message: 'Erro ao fazer login', error });
-  }
+app.use('/api', authRoutes); // /api/login
+app.use('/api', protectedRoutes); // /api/protegido
+app.use('/api', userRoutes); // /api/usuarios
+app.use('/api/casos', caseRoutes); // /api/casos
+app.use('/api/evidencias', evidenceRoutes); // /api/evidencias
+app.use('/api/laudos', laudoRoutes); // /api/laudos
+app.use('/api/relatorios', relatorioRoutes); // /api/relatorio
+app.use('/api/historico', historicoRoutes); // /api/historico
+
+// Rota de teste
+app.get('/', (req, res) => {
+  res.json({ message: 'API de Gerenciamento de Casos Periciais está funcionando!' });
 });
 
-module.exports = router;
+module.exports = app;
