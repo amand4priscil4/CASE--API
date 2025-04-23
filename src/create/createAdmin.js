@@ -1,7 +1,7 @@
 const User = require('../models/user.model');
 const { hashPassword } = require('../utils/hashPassword');
 
-// Função para criar o administrador ao iniciar o sistema
+// Função para criar o administrador ao iniciar o sistem
 const createAdmin = async () => {
   try {
     const adminExists = await User.findOne({ email: 'admin@case.com' });
