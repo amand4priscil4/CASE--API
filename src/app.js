@@ -2,19 +2,22 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors'); // Importado o middleware cors
 const app = express();
+const uri = "mongodb+srv://amandapriscilaa15:S99rV4gzO6u9MYaw@cluster0.sd5eblw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"; // Substitua isso!
 
-// Conexão com MongoDB
 mongoose
-  .connect('mongodb://localhost:27017/case-api')
-  .then(() => console.log('Conectado ao MongoDB'))
-  .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
+  .connect(uri, {
+    //useNewUrlParser: true,
+    //useUnifiedTopology: true,
+  })
+  .then(() => console.log('Conectado ao MongoDB Atlas'))
+  .catch(err => console.error('Erro ao conectar ao MongoDB Atlas:', err));
 
 // Middleware para habilitar o CORS
 app.use(
   cors({
-    origin: 'http://127.0.0.1:5500', // Certifique-se de que esta é a origem correta do seu frontend
-    methods: 'POST', // Inclua todos os métodos que você usa (GET, POST, etc.)
-    allowedHeaders: 'Content-Type, Authorization' // Certifique-se de ter 'Authorization' aqui!
+    origin: 'http://127.0.0.1:5500', // Ou o domínio do seu frontend
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: '*' // Permite todos os cabeçalhos
   })
 );
 

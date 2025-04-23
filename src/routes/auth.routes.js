@@ -8,35 +8,45 @@ const User = require('../models/user.model');
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
-  // Verificar se o email e a senha foram fornecidos
   if (!email || !password) {
     return res.status(400).json({ message: 'Email e senha são obrigatórios' });
   }
 
   try {
-    // Buscar o usuário pelo email
+    console.log('Tentativa de login para o email:', email); // Log do email
+
     const user = await User.findOne({ email });
+    console.log('Usuário encontrado:', user); // Log do usuário encontrado
+
     if (!user) {
+      console.log('Usuário não encontrado.');
       return res.status(401).json({ message: 'Credenciais inválidas' });
     }
 
-    // Comparar a senha fornecida com a senha armazenada (hash)
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Senha corresponde:', isMatch); // Log da comparação da senha
+
     if (!isMatch) {
+      console.log('Senha incorreta.');
       return res.status(401).json({ message: 'Credenciais inválidas' });
     }
 
-    // Gerar o token JWT
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET || 'sua-chave-secreta',
-      { expiresIn: '1h' } // Token expira em 1 hora
+      { expiresIn: '1h' }
     );
 
+    console.log('Token gerado:', token); // Log do token gerado
+
     res.status(200).json({ token, user: { id: user._id, email: user.email, role: user.role } });
+    console.log('Login bem-sucedido!'); // Log de sucesso
+
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao fazer login', error });
+    console.error('Erro na rota /login:', error); // Log do erro completo
+    res.status(500).json({ message: 'Erro ao fazer login', error: error.message }); // Enviar a mensagem de erro detalhada
   }
 });
 
 module.exports = router;
+
