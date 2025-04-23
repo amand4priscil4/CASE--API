@@ -1,51 +1,52 @@
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors'); // Importado o middleware cors
-const app = express();
+const router = express.Router();
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const User = require('../models/user.model');
 
-// Conexão com MongoDB
-mongoose
-  .connect('mongodb://localhost:27017/case-api')
-  .then(() => console.log('Conectado ao MongoDB'))
-  .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
+// Rota de login
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
 
-// Middleware para habilitar o CORS
-app.use(
-  cors({
-    origin: 'http://127.0.0.1:5500', // Ou o domínio do seu frontend
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: '*' // Permite todos os cabeçalhos
-  })
-);
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email e senha são obrigatórios' });
+  }
 
-// Middleware para parsing de JSON
-app.use(express.json());
+  try {
+    console.log('Tentativa de login para o email:', email); // Log do email
 
-// Importa a função createAdmin para executá-la ao iniciar
-require('./create/createAdmin');
+    const user = await User.findOne({ email });
+    console.log('Usuário encontrado:', user); // Log do usuário encontrado
 
-// Rotas
-const authRoutes = require('./routes/auth.routes'); // Login, geração de token
-const protectedRoutes = require('./routes/protected.routes'); // Rotas protegidas genéricas (tipo /api/protegido)
-const userRoutes = require('./routes/user.routes'); // Cadastro, update e listagem de usuários
-const caseRoutes = require('./routes/case.routes'); // Gerenciamento de casos (CRUD)
-const evidenceRoutes = require('./routes/evidence.routes'); // Gerenciamento de evidências
-const laudoRoutes = require('./routes/laudo.routes'); // Gerenciamento de laudos
-const relatorioRoutes = require('./routes/relatorio.routes'); // criação do relatório final
-const historicoRoutes = require('./routes/historico.routes'); // Gerenciamento de histórico
+    if (!user) {
+      console.log('Usuário não encontrado.');
+      return res.status(401).json({ message: 'Credenciais inválidas' });
+    }
 
-app.use('/api', authRoutes); // /api/login
-app.use('/api', protectedRoutes); // /api/protegido
-app.use('/api', userRoutes); // /api/usuarios
-app.use('/api/casos', caseRoutes); // /api/casos
-app.use('/api/evidencias', evidenceRoutes); // /api/evidencias
-app.use('/api/laudos', laudoRoutes); // /api/laudos
-app.use('/api/relatorios', relatorioRoutes); // /api/relatorio
-app.use('/api/historico', historicoRoutes); // /api/historico
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Senha corresponde:', isMatch); // Log da comparação da senha
 
-// Rota de teste
-app.get('/', (req, res) => {
-  res.json({ message: 'API de Gerenciamento de Casos Periciais está funcionando!' });
+    if (!isMatch) {
+      console.log('Senha incorreta.');
+      return res.status(401).json({ message: 'Credenciais inválidas' });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || 'sua-chave-secreta',
+      { expiresIn: '1h' }
+    );
+
+    console.log('Token gerado:', token); // Log do token gerado
+
+    res.status(200).json({ token, user: { id: user._id, email: user.email, role: user.role } });
+    console.log('Login bem-sucedido!'); // Log de sucesso
+
+  } catch (error) {
+    console.error('Erro na rota /login:', error); // Log do erro completo
+    res.status(500).json({ message: 'Erro ao fazer login', error: error.message }); // Enviar a mensagem de erro detalhada
+  }
 });
 
-module.exports = app;
+module.exports = router;
+
