@@ -2,12 +2,12 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors'); // Importado o middleware cors
 const app = express();
-const uri = "mongodb+srv://amandapriscilaa15:<S99rV4gzO6u9MYaw>@cluster0.sd5eblw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"; // Substitua isso!
+const uri = "mongodb+srv://amandapriscilaa15:S99rV4gzO6u9MYaw@cluster0.sd5eblw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"; // Substitua isso!
 
 mongoose
   .connect(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+    //useNewUrlParser: true,
+    //useUnifiedTopology: true,
   })
   .then(() => console.log('Conectado ao MongoDB Atlas'))
   .catch(err => console.error('Erro ao conectar ao MongoDB Atlas:', err));
@@ -52,3 +52,4 @@ app.get('/', (req, res) => {
 });
 
 module.exports = app;
+
