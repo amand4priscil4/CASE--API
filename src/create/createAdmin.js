@@ -4,7 +4,7 @@ const { hashPassword } = require('../utils/hashPassword');
 // Função para criar o administrador ao iniciar o sistem
 const createAdmin = async () => {
   try {
-    const adminExists = await User.findOne({ email: 'admin@case.com' });
+    const adminExists = await User.findOne({ email: 'admin@olin.com' });
     if (adminExists) {
       console.log('Administrador já existe');
       return;
@@ -13,7 +13,7 @@ const createAdmin = async () => {
     const hashedPassword = await hashPassword('admin123'); // Usa a função utilitária
     const admin = new User({
       name: 'Administrador',
-      email: 'admin@case.com',
+      email: 'admin@olin.com',
       password: hashedPassword,
       role: 'admin'
     });
