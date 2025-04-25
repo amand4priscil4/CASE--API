@@ -33,7 +33,7 @@ const historicoRoutes = require('./routes/historico.routes'); // Gerenciamento d
 
 app.use('/api', authRoutes); // /api/login
 app.use('/api', protectedRoutes); // /api/protegido
-app.use('/api', userRoutes); // /api/usuarios
+app.use('/api/users', userRoutes); // /api/usuarios
 app.use('/api/casos', caseRoutes); // /api/casos
 app.use('/api/evidencias', evidenceRoutes); // /api/evidencias
 app.use('/api/laudos', laudoRoutes); // /api/laudos
