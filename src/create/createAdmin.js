@@ -3,8 +3,8 @@ const hashPassword = require('../utils/hashPassword');
 
 /**
  * Cria automaticamente um usuário administrador padrão
- * caso nenhum usuário com a role 'admin' exista no sistema
- * Esse processo é executado no início aplicação
+ * caso nenhum usuário com a role 'admin' exista no sistema.
+ * Esse processo é executado no início aplicação.
  */
 
 module.exports = async function createInitialAdmin() {
@@ -20,7 +20,7 @@ module.exports = async function createInitialAdmin() {
     const admin = new User({
       // Cria novo usuário com perfil de administrador
       name: 'Administrador Master',
-      email: 'admin@olin.com',
+      email: 'admin@case.com',
       matricula: 'ADM-0001',
       password: hashed,
       role: 'admin',

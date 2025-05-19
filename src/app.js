@@ -36,6 +36,7 @@ const evidenceRoutes = require('./routes/evidence.routes'); // Gerenciamento de 
 const laudoRoutes = require('./routes/laudo.routes'); // Gerenciamento de laudos
 const relatorioRoutes = require('./routes/relatorio.routes'); // criação do relatório final
 const historicoRoutes = require('./routes/historico.routes'); // Gerenciamento de histórico
+const vitimaRoutes = require('./routes/vitima.routes');
 
 app.use('/api', authRoutes); // /api/login
 app.use('/api', protectedRoutes); // /api/protegido
@@ -45,6 +46,7 @@ app.use('/api/evidencias', evidenceRoutes); // /api/evidencias
 app.use('/api/laudos', laudoRoutes); // /api/laudos
 app.use('/api/relatorios', relatorioRoutes); // /api/relatorio
 app.use('/api/historico', historicoRoutes); // /api/historico
+app.use('/api/vitimas', vitimaRoutes);
 
 // Rota de teste
 app.get('/', (req, res) => {
