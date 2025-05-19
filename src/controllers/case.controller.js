@@ -1,17 +1,19 @@
 const Case = require('../models/case.model');
 
-// Cria um novo caso
+// Criar novo caso
 exports.createCase = async (req, res) => {
   try {
-    const { titulo, descricao, data, peritoResponsavel, localDoCaso } = req.body;
+    const { titulo, tipo, descricao, data, status, peritoResponsavel, localDoCaso } = req.body;
 
     const novoCaso = new Case({
       titulo,
+      tipo, // <-- Agora recebe tipo também
       descricao,
       data,
+      status,
       peritoResponsavel,
       localDoCaso,
-      criadoPor: req.user.id // quem criou o caso (admin ou perito)
+      criadoPor: req.user.id
     });
 
     await novoCaso.save();
@@ -26,7 +28,7 @@ exports.createCase = async (req, res) => {
 // Listar todos os casos
 exports.getAllCases = async (req, res) => {
   try {
-    const casos = await Case.find().populate('peritoResponsavel', 'name email matricula');
+    const casos = await Case.find().populate('peritoResponsavel', 'name email');
     res.status(200).json(casos);
   } catch (error) {
     console.error('[ERRO] Listagem de casos:', error);
@@ -39,8 +41,7 @@ exports.getCaseById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const caso = await Case.findById(id).populate('peritoResponsavel', 'name email matricula');
-
+    const caso = await Case.findById(id).populate('peritoResponsavel', 'name email');
     if (!caso) {
       return res.status(404).json({ message: 'Caso não encontrado.' });
     }
@@ -52,15 +53,16 @@ exports.getCaseById = async (req, res) => {
   }
 };
 
-// Editar cado por ID
+// Atualizar caso
 exports.updateCase = async (req, res) => {
   try {
     const { id } = req.params;
-    const { titulo, descricao, data, status, peritoResponsavel } = req.body;
+    const { titulo, tipo, descricao, data, status, peritoResponsavel, localDoCaso } = req.body;
 
     const atualizacoes = {};
 
     if (titulo) atualizacoes.titulo = titulo;
+    if (tipo) atualizacoes.tipo = tipo;
     if (descricao) atualizacoes.descricao = descricao;
     if (data) atualizacoes.data = data;
     if (status) atualizacoes.status = status;
@@ -70,7 +72,7 @@ exports.updateCase = async (req, res) => {
     const casoAtualizado = await Case.findByIdAndUpdate(id, atualizacoes, {
       new: true,
       runValidators: true
-    }).populate('peritoResponsavel', 'name email matricula');
+    }).populate('peritoResponsavel', 'name email');
 
     if (!casoAtualizado) {
       return res.status(404).json({ message: 'Caso não encontrado.' });
@@ -83,7 +85,7 @@ exports.updateCase = async (req, res) => {
   }
 };
 
-// Deletar caso por ID
+// Deletar caso
 exports.deleteCase = async (req, res) => {
   try {
     const { id } = req.params;

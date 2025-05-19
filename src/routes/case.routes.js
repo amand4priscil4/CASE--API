@@ -1,41 +1,21 @@
 const express = require('express');
 const router = express.Router();
-
-// Middlewares de segurança e controle de acesso
-const authMiddleware = require('../middlewares/auth.middleware');
-const roleCheck = require('../middlewares/roleCheck.middleware');
-
-// Controller que contém as funções que fazem o trabalho real (CRUD dos casos)
 const caseController = require('../controllers/case.controller');
+const authMiddleware = require('../middlewares/auth.middleware');
 
-// Criar novo caso - admin e perito
-router.post('/', authMiddleware, roleCheck(['admin', 'perito']), caseController.createCase);
+// Criar novo caso
+router.post('/', authMiddleware, caseController.createCase);
 
-// Listar todos os casos - admin, perito e assistente
-router.get(
-  '/',
-  authMiddleware,
-  roleCheck(['admin', 'perito', 'assistente']),
-  caseController.getAllCases
-);
+// Buscar todos os casos
+router.get('/', authMiddleware, caseController.getAllCases);
 
-// Buscar caso por ID
-router.get(
-  '/:id',
-  authMiddleware,
-  roleCheck(['admin', 'perito', 'assistente']),
-  caseController.getCaseById
-);
+// Buscar um caso específico
+router.get('/:id', authMiddleware, caseController.getCaseById);
 
-// Editar caso por ID
-router.put('/:id', authMiddleware, roleCheck(['admin', 'perito']), caseController.updateCase);
+// Atualizar um caso
+router.put('/:id', authMiddleware, caseController.updateCase);
 
-// Deletar cado por ID
-router.delete(
-  '/:id',
-  authMiddleware,
-  roleCheck(['admin']), // só o chefão pode apagar
-  caseController.deleteCase
-);
+// Deletar um caso
+router.delete('/:id', authMiddleware, caseController.deleteCase);
 
 module.exports = router;

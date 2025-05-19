@@ -1,6 +1,7 @@
 const User = require('../models/user.model');
-const hashPassword = require('../utils/hashPassword');
+const { hashPassword } = require('../utils/hashPassword');
 
+<<<<<<< HEAD
 /**
  * Cria automaticamente um usuário administrador padrão
  * caso nenhum usuário com a role 'admin' exista no sistema.
@@ -8,16 +9,20 @@ const hashPassword = require('../utils/hashPassword');
  */
 
 module.exports = async function createInitialAdmin() {
+=======
+// Função para criar o administrador ao iniciar o sistem
+const createAdmin = async () => {
+>>>>>>> c8eacf05725f2797d0e85f77e114a1ebbba5fba5
   try {
-    const adminExists = await User.findOne({ role: 'admin' }); // Verifica se já existe pelo menos um administrador cadastrado
-
+    const adminExists = await User.findOne({ email: 'admin@olin.com' });
     if (adminExists) {
-      console.log('[✔] Usuário administrador já existente. Nenhuma ação necessária.');
+      console.log('Administrador já existe');
       return;
     }
 
-    const hashed = await hashPassword('admin123'); // Gera hash da senha padrão
+    const hashedPassword = await hashPassword('admin123'); // Usa a função utilitária
     const admin = new User({
+<<<<<<< HEAD
       // Cria novo usuário com perfil de administrador
       name: 'Administrador Master',
       email: 'admin@case.com',
@@ -25,11 +30,22 @@ module.exports = async function createInitialAdmin() {
       password: hashed,
       role: 'admin',
       active: true
+=======
+      name: 'Administrador',
+      email: 'admin@olin.com',
+      password: hashedPassword,
+      role: 'admin'
+>>>>>>> c8eacf05725f2797d0e85f77e114a1ebbba5fba5
     });
 
-    await admin.save(); // Salva o usuário no banco de dados
-    console.log('[INFO] Usuário administrador criado com sucesso.');
-  } catch (err) {
-    console.error('[ERRO] Falha ao criar administrador inicial:', err.message);
+    await admin.save();
+    console.log('Administrador criado com sucesso');
+  } catch (error) {
+    console.error('Erro ao criar administrador:', error);
   }
 };
+
+// Executa a função ao iniciar
+createAdmin();
+
+module.exports = createAdmin;

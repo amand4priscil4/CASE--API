@@ -13,6 +13,7 @@ mongoose
   .catch(err => console.error('Erro ao conectar ao MongoDB Atlas:', err));
 
 // Middleware para habilitar o CORS
+<<<<<<< HEAD
 app.use(
   cors({
     origin: 'http://127.0.0.1:5500', // Ou o domínio do seu frontend
@@ -20,6 +21,9 @@ app.use(
     allowedHeaders: '*' // Permite todos os cabeçalhos
   })
 );
+=======
+app.use(cors());
+>>>>>>> c8eacf05725f2797d0e85f77e114a1ebbba5fba5
 
 // Middleware para parsing de JSON
 app.use(express.json());
@@ -40,7 +44,7 @@ const vitimaRoutes = require('./routes/vitima.routes');
 
 app.use('/api', authRoutes); // /api/login
 app.use('/api', protectedRoutes); // /api/protegido
-app.use('/api', userRoutes); // /api/usuarios
+app.use('/api/users', userRoutes); // /api/usuarios
 app.use('/api/casos', caseRoutes); // /api/casos
 app.use('/api/evidencias', evidenceRoutes); // /api/evidencias
 app.use('/api/laudos', laudoRoutes); // /api/laudos
@@ -54,3 +58,4 @@ app.get('/', (req, res) => {
 });
 
 module.exports = app;
+
