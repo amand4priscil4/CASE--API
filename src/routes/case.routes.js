@@ -9,6 +9,9 @@ router.post('/', authMiddleware, caseController.createCase);
 // Buscar todos os casos
 router.get('/', authMiddleware, caseController.getAllCases);
 
+// Nova rota: Buscar casos por proximidade geográfica
+router.get('/nearby', authMiddleware, caseController.getCasesByLocation);
+
 // Buscar um caso específico
 router.get('/:id', authMiddleware, caseController.getCaseById);
 
