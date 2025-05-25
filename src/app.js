@@ -16,11 +16,8 @@ mongoose
 app.use(
   cors({
     origin: [
-      'http://127.0.0.1:5500', 
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'https://sistema-olin.netlify.app'
-      'https://opulent-capybara-5gw9g7p49q734xwj-5173.app.github.dev/'
+      'https://sistema-olin.netlify.app',
+      'https://opulent-capybara-5gw9g7p49q734xwj-5173.app.github.dev'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

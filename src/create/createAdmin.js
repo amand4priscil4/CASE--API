@@ -11,14 +11,14 @@ async function createAdmin() {
       
       const admin = new User({
         name: 'Administrador',
-        email: 'admin@sistema.com',
+        email: 'admin@olin.com',
         password: hashedPassword,
         role: 'admin'
       });
       
       await admin.save();
       console.log('Usuário administrador criado com sucesso!');
-      console.log('Email: admin@sistema.com');
+      console.log('Email: admin@olin.com');
       console.log('Senha: admin123');
     } else {
       console.log('Administrador já existe');
