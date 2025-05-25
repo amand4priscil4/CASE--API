@@ -13,17 +13,19 @@ mongoose
   .catch(err => console.error('Erro ao conectar ao MongoDB Atlas:', err));
 
 // Middleware para habilitar o CORS
-<<<<<<< HEAD
 app.use(
   cors({
-    origin: 'http://127.0.0.1:5500', // Ou o domínio do seu frontend
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: '*' // Permite todos os cabeçalhos
+    origin: [
+      'http://127.0.0.1:5500', 
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://seu-frontend-domain.com' // Substitua pelo domínio do seu frontend
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
   })
 );
-=======
-app.use(cors());
->>>>>>> c8eacf05725f2797d0e85f77e114a1ebbba5fba5
 
 // Middleware para parsing de JSON
 app.use(express.json());
@@ -58,4 +60,3 @@ app.get('/', (req, res) => {
 });
 
 module.exports = app;
-
