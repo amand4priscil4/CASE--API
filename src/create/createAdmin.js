@@ -21,7 +21,7 @@ async function createAdmin() {
       console.log('Email: admin@sistema.com');
       console.log('Senha: admin123');
     } else {
-      console.log('Usuário administrador já existe.');
+      console.log('Administrador já existe');
     }
   } catch (error) {
     console.error('Erro ao criar administrador:', error);
