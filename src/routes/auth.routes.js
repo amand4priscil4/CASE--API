@@ -14,7 +14,8 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    // Buscar o usuário pelo email
+    console.log('Tentativa de login para o email:', email); // Log do email
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'Credenciais inválidas' });
@@ -33,10 +34,19 @@ router.post('/login', async (req, res) => {
       { expiresIn: '1h' } // Token expira em 1 hora
     );
 
+    console.log('Token gerado:', token); // Log do token gerado
+
     res.status(200).json({ token, user: { id: user._id, email: user.email, role: user.role } });
+    console.log('Login bem-sucedido!'); // Log de sucesso
+
   } catch (error) {
     res.status(500).json({ message: 'Erro ao fazer login', error });
   }
 });
 
 module.exports = router;
+
+<<<<<<< HEAD
+=======
+
+>>>>>>> c8eacf05725f2797d0e85f77e114a1ebbba5fba5
