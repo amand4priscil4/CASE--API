@@ -14,7 +14,6 @@ router.post('/login', async (req, res) => {
 
   try {
     console.log('Tentativa de login para o email:', email); // Log do email
-
     const user = await User.findOne({ email });
     console.log('Usuário encontrado:', user); // Log do usuário encontrado
 
@@ -38,10 +37,8 @@ router.post('/login', async (req, res) => {
     );
 
     console.log('Token gerado:', token); // Log do token gerado
-
     res.status(200).json({ token, user: { id: user._id, email: user.email, role: user.role } });
     console.log('Login bem-sucedido!'); // Log de sucesso
-
   } catch (error) {
     console.error('Erro na rota /login:', error); // Log do erro completo
     res.status(500).json({ message: 'Erro ao fazer login', error: error.message }); // Enviar a mensagem de erro detalhada
@@ -49,8 +46,3 @@ router.post('/login', async (req, res) => {
 });
 
 module.exports = router;
-
-<<<<<<< HEAD
-=======
-
->>>>>>> c8eacf05725f2797d0e85f77e114a1ebbba5fba5
