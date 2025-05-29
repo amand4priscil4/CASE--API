@@ -95,8 +95,7 @@ Authorization: Bearer <token>
     "role": "perito",
     "createdAt": "2023-01-01T00:00:00.000Z",
     "updatedAt": "2023-01-01T00:00:00.000Z"
-  },
-  // ...mais usuários
+  }
 ]
 ```
 
@@ -231,8 +230,7 @@ Authorization: Bearer <token>
     "criadoPor": "60d21b4667d0d8992e610c85",
     "createdAt": "2023-01-01T00:00:00.000Z",
     "updatedAt": "2023-01-01T00:00:00.000Z"
-  },
-  // ...mais casos
+  }
 ]
 ```
 
@@ -383,8 +381,7 @@ arquivo: [ARQUIVO BINÁRIO]
       "name": "Nome do Usuário",
       "perfil": "Perito"
     }
-  },
-  // ...mais evidências
+  }
 ]
 ```
 
@@ -428,53 +425,6 @@ arquivo: [ARQUIVO BINÁRIO]
 }
 ```
 
-## Histórico
-
-### Listar Histórico por Caso
-**Endpoint:** `GET /api/historico/caso/:caseId`
-
-**Resposta de Sucesso (200):**
-```json
-[
-  {
-    "_id": "60d21b4667d0d8992e610c89",
-    "acao": "Relatório final criado",
-    "usuario": {
-      "_id": "60d21b4667d0d8992e610c85",
-      "nome": "Nome do Usuário"
-    },
-    "caso": "60d21b4667d0d8992e610c86",
-    "data": "2023-01-01T00:00:00.000Z",
-    "detalhes": "O usuário criou o relatório final com o título \"Título do Relatório\"."
-  },
-  // ...mais entradas de histórico
-]
-```
-
-### Listar Histórico Geral
-**Endpoint:** `GET /api/historico/todos`
-
-**Resposta de Sucesso (200):**
-```json
-[
-  {
-    "_id": "60d21b4667d0d8992e610c89",
-    "acao": "Relatório final criado",
-    "usuario": {
-      "_id": "60d21b4667d0d8992e610c85",
-      "nome": "Nome do Usuário"
-    },
-    "caso": {
-      "_id": "60d21b4667d0d8992e610c86",
-      "titulo": "Título do Caso"
-    },
-    "data": "2023-01-01T00:00:00.000Z",
-    "detalhes": "O usuário criou o relatório final com o título \"Título do Relatório\"."
-  },
-  // ...mais entradas de histórico
-]
-```
-
 ## Laudos
 
 ### Criar Laudo
@@ -508,6 +458,425 @@ arquivo: [ARQUIVO BINÁRIO]
     "criadoEm": "2023-01-01T00:00:00.000Z"
   }
 }
+```
+
+## Vítimas
+
+### Criar Nova Vítima
+**Endpoint:** `POST /api/vitimas`
+
+**Restrição:** Apenas usuários com role "admin" ou "perito" podem criar vítimas.
+
+**Corpo da Requisição:**
+```json
+{
+  "nic": "NIC123456",
+  "nome": "João Silva",
+  "genero": "masculino",
+  "idade": 35,
+  "documento": {
+    "tipo": "cpf",
+    "numero": "123.456.789-00"
+  },
+  "endereco": {
+    "logradouro": "Rua das Flores, 123",
+    "numero": "123",
+    "complemento": "Apt 45",
+    "bairro": "Centro",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "cep": "01234-567"
+  },
+  "corEtnia": "branca",
+  "odontograma": {
+    "arcadaSuperior": [],
+    "arcadaInferior": []
+  },
+  "regioesAnatomicas": [
+    {
+      "regiao": {
+        "codigo": "R001",
+        "nome": "Crânio"
+      },
+      "tipo": "fraturas",
+      "descricao": "Fratura parietal esquerda"
+    }
+  ],
+  "caso": "60d21b4667d0d8992e610c86"
+}
+```
+
+**Observações:**
+- `nic`, `nome`, `genero`, `idade`, `documento` e `caso` são obrigatórios
+- `genero` deve ser: "masculino", "feminino" ou "outro"
+- `documento.tipo` deve ser: "rg", "cpf", "passaporte" ou "outro"
+- `corEtnia` deve ser: "branca", "preta", "parda", "amarela" ou "indígena"
+
+**Resposta de Sucesso (201):**
+```json
+{
+  "message": "Vítima cadastrada com sucesso.",
+  "vitima": {
+    "_id": "60d21b4667d0d8992e610c90",
+    "nic": "NIC123456",
+    "nome": "João Silva",
+    "genero": "masculino",
+    "idade": 35,
+    "documento": {
+      "tipo": "cpf",
+      "numero": "123.456.789-00"
+    },
+    "endereco": {
+      "logradouro": "Rua das Flores, 123",
+      "numero": "123",
+      "complemento": "Apt 45",
+      "bairro": "Centro",
+      "cidade": "São Paulo",
+      "estado": "SP",
+      "cep": "01234-567"
+    },
+    "corEtnia": "branca",
+    "odontograma": {
+      "arcadaSuperior": [],
+      "arcadaInferior": []
+    },
+    "regioesAnatomicas": [
+      {
+        "regiao": {
+          "codigo": "R001",
+          "nome": "Crânio"
+        },
+        "tipo": "fraturas",
+        "descricao": "Fratura parietal esquerda",
+        "dataRegistro": "2023-01-01T00:00:00.000Z"
+      }
+    ],
+    "caso": "60d21b4667d0d8992e610c86",
+    "criadoPor": "60d21b4667d0d8992e610c85",
+    "createdAt": "2023-01-01T00:00:00.000Z",
+    "updatedAt": "2023-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### Listar Vítimas por Caso
+**Endpoint:** `GET /api/vitimas/caso/:casoId`
+
+**Resposta de Sucesso (200):**
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c90",
+    "nic": "NIC123456",
+    "nome": "João Silva",
+    "genero": "masculino",
+    "idade": 35,
+    "documento": {
+      "tipo": "cpf",
+      "numero": "123.456.789-00"
+    },
+    "endereco": {
+      "logradouro": "Rua das Flores, 123",
+      "numero": "123",
+      "complemento": "Apt 45",
+      "bairro": "Centro",
+      "cidade": "São Paulo",
+      "estado": "SP",
+      "cep": "01234-567"
+    },
+    "corEtnia": "branca",
+    "odontograma": {
+      "arcadaSuperior": [],
+      "arcadaInferior": []
+    },
+    "regioesAnatomicas": [],
+    "caso": "60d21b4667d0d8992e610c86",
+    "criadoPor": "60d21b4667d0d8992e610c85",
+    "createdAt": "2023-01-01T00:00:00.000Z",
+    "updatedAt": "2023-01-01T00:00:00.000Z"
+  }
+]
+```
+
+### Buscar Vítima por ID
+**Endpoint:** `GET /api/vitimas/:id`
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "_id": "60d21b4667d0d8992e610c90",
+  "nic": "NIC123456",
+  "nome": "João Silva",
+  "genero": "masculino",
+  "idade": 35,
+  "documento": {
+    "tipo": "cpf",
+    "numero": "123.456.789-00"
+  },
+  "endereco": {
+    "logradouro": "Rua das Flores, 123",
+    "numero": "123",
+    "complemento": "Apt 45",
+    "bairro": "Centro",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "cep": "01234-567"
+  },
+  "corEtnia": "branca",
+  "odontograma": {
+    "arcadaSuperior": [],
+    "arcadaInferior": []
+  },
+  "regioesAnatomicas": [],
+  "caso": "60d21b4667d0d8992e610c86",
+  "criadoPor": "60d21b4667d0d8992e610c85",
+  "createdAt": "2023-01-01T00:00:00.000Z",
+  "updatedAt": "2023-01-01T00:00:00.000Z"
+}
+```
+
+### Atualizar Vítima
+**Endpoint:** `PUT /api/vitimas/:id`
+
+**Restrição:** Apenas usuários com role "admin" ou "perito" podem atualizar vítimas.
+
+**Corpo da Requisição:**
+```json
+{
+  "nome": "João Silva Santos",
+  "idade": 36,
+  "endereco": {
+    "logradouro": "Rua das Rosas, 456",
+    "numero": "456",
+    "bairro": "Jardim",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "cep": "01234-890"
+  }
+}
+```
+
+**Observações:**
+- Todos os campos são opcionais
+- Apenas os campos enviados serão atualizados
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "message": "Vítima atualizada com sucesso.",
+  "vitima": {
+    "_id": "60d21b4667d0d8992e610c90",
+    "nic": "NIC123456",
+    "nome": "João Silva Santos",
+    "genero": "masculino",
+    "idade": 36,
+    "documento": {
+      "tipo": "cpf",
+      "numero": "123.456.789-00"
+    },
+    "endereco": {
+      "logradouro": "Rua das Rosas, 456",
+      "numero": "456",
+      "bairro": "Jardim",
+      "cidade": "São Paulo",
+      "estado": "SP",
+      "cep": "01234-890"
+    },
+    "corEtnia": "branca",
+    "odontograma": {
+      "arcadaSuperior": [],
+      "arcadaInferior": []
+    },
+    "regioesAnatomicas": [],
+    "caso": "60d21b4667d0d8992e610c86",
+    "criadoPor": "60d21b4667d0d8992e610c85",
+    "createdAt": "2023-01-01T00:00:00.000Z",
+    "updatedAt": "2023-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### Deletar Vítima
+**Endpoint:** `DELETE /api/vitimas/:id`
+
+**Restrição:** Apenas usuários com role "admin" ou "perito" podem deletar vítimas.
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "message": "Vítima removida com sucesso."
+}
+```
+
+### Atualizar Odontograma
+**Endpoint:** `PUT /api/vitimas/:id/odontograma`
+
+**Restrição:** Apenas usuários com role "admin" ou "perito" podem atualizar odontogramas.
+
+**Corpo da Requisição:**
+```json
+{
+  "odontograma": {
+    "arcadaSuperior": [
+      {
+        "dente": "18",
+        "estado": "presente",
+        "observacoes": "Cárie oclusal"
+      },
+      {
+        "dente": "17",
+        "estado": "ausente",
+        "observacoes": "Extraído"
+      }
+    ],
+    "arcadaInferior": [
+      {
+        "dente": "48",
+        "estado": "presente",
+        "observacoes": "Restauração amalgama"
+      }
+    ]
+  }
+}
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "message": "Odontograma atualizado com sucesso",
+  "vitima": {
+    "_id": "60d21b4667d0d8992e610c90",
+    "nic": "NIC123456",
+    "nome": "João Silva",
+    "odontograma": {
+      "arcadaSuperior": [
+        {
+          "dente": "18",
+          "estado": "presente",
+          "observacoes": "Cárie oclusal"
+        },
+        {
+          "dente": "17",
+          "estado": "ausente",
+          "observacoes": "Extraído"
+        }
+      ],
+      "arcadaInferior": [
+        {
+          "dente": "48",
+          "estado": "presente",
+          "observacoes": "Restauração amalgama"
+        }
+      ]
+    }
+  }
+}
+```
+
+### Atualizar Regiões Anatômicas
+**Endpoint:** `PUT /api/vitimas/:id/regioes-anatomicas`
+
+**Restrição:** Apenas usuários com role "admin" ou "perito" podem atualizar regiões anatômicas.
+
+**Corpo da Requisição:**
+```json
+{
+  "regioesAnatomicas": [
+    {
+      "regiao": {
+        "codigo": "R001",
+        "nome": "Crânio"
+      },
+      "tipo": "fraturas",
+      "descricao": "Fratura parietal esquerda com deslocamento"
+    },
+    {
+      "regiao": {
+        "codigo": "R002",
+        "nome": "Mandíbula"
+      },
+      "tipo": "lesões",
+      "descricao": "Fratura bilateral do corpo mandibular"
+    }
+  ]
+}
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "message": "Regiões anatômicas atualizadas com sucesso",
+  "vitima": {
+    "_id": "60d21b4667d0d8992e610c90",
+    "nic": "NIC123456",
+    "nome": "João Silva",
+    "regioesAnatomicas": [
+      {
+        "regiao": {
+          "codigo": "R001",
+          "nome": "Crânio"
+        },
+        "tipo": "fraturas",
+        "descricao": "Fratura parietal esquerda com deslocamento",
+        "dataRegistro": "2023-01-01T00:00:00.000Z"
+      },
+      {
+        "regiao": {
+          "codigo": "R002",
+          "nome": "Mandíbula"
+        },
+        "tipo": "lesões",
+        "descricao": "Fratura bilateral do corpo mandibular",
+        "dataRegistro": "2023-01-01T00:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+## Histórico
+
+### Listar Histórico por Caso
+**Endpoint:** `GET /api/historico/caso/:caseId`
+
+**Resposta de Sucesso (200):**
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c89",
+    "acao": "Relatório final criado",
+    "usuario": {
+      "_id": "60d21b4667d0d8992e610c85",
+      "nome": "Nome do Usuário"
+    },
+    "caso": "60d21b4667d0d8992e610c86",
+    "data": "2023-01-01T00:00:00.000Z",
+    "detalhes": "O usuário criou o relatório final com o título \"Título do Relatório\"."
+  }
+]
+```
+
+### Listar Histórico Geral
+**Endpoint:** `GET /api/historico/todos`
+
+**Resposta de Sucesso (200):**
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c89",
+    "acao": "Relatório final criado",
+    "usuario": {
+      "_id": "60d21b4667d0d8992e610c85",
+      "nome": "Nome do Usuário"
+    },
+    "caso": {
+      "_id": "60d21b4667d0d8992e610c86",
+      "titulo": "Título do Caso"
+    },
+    "data": "2023-01-01T00:00:00.000Z",
+    "detalhes": "O usuário criou o relatório final com o título \"Título do Relatório\"."
+  }
+]
 ```
 
 ## Relatórios
@@ -638,6 +1007,47 @@ Content-Type: application/pdf
 }
 ```
 
+### Vitima
+```javascript
+{
+  nic: String,           // Número de Identificação Cadavérica (obrigatório, único)
+  nome: String,          // Nome da vítima (obrigatório)
+  genero: String,        // Gênero: 'masculino', 'feminino', 'outro' (obrigatório)
+  idade: Number,         // Idade da vítima (obrigatório)
+  documento: {           // Documento de identificação (obrigatório)
+    tipo: String,        // Tipo: 'rg', 'cpf', 'passaporte', 'outro' (obrigatório)
+    numero: String       // Número do documento (obrigatório)
+  },
+  endereco: {            // Endereço da vítima
+    logradouro: String,  // Logradouro
+    numero: String,      // Número
+    complemento: String, // Complemento
+    bairro: String,      // Bairro
+    cidade: String,      // Cidade
+    estado: String,      // Estado
+    cep: String          // CEP
+  },
+  corEtnia: String,      // Cor/Etnia: 'branca', 'preta', 'parda', 'amarela', 'indígena'
+  odontograma: {         // Informações odontológicas
+    arcadaSuperior: Array, // Dentes da arcada superior
+    arcadaInferior: Array  // Dentes da arcada inferior
+  },
+  regioesAnatomicas: [{  // Regiões anatômicas examinadas
+    regiao: {
+      codigo: String,    // Código da região
+      nome: String       // Nome da região
+    },
+    tipo: String,        // Tipo de exame/lesão
+    descricao: String,   // Descrição detalhada
+    dataRegistro: Date   // Data do registro (padrão: data atual)
+  }],
+  caso: ObjectId,        // Referência ao caso associado (obrigatório)
+  criadoPor: ObjectId,   // Referência ao usuário que criou (obrigatório)
+  createdAt: Date,       // Data de criação (automático)
+  updatedAt: Date        // Data de atualização (automático)
+}
+```
+
 ### Historico
 ```javascript
 {
@@ -685,13 +1095,19 @@ Content-Type: application/pdf
 
 2. **Controle de Acesso**: Várias rotas têm restrições baseadas no papel (role) do usuário:
    - Administradores têm acesso completo
-   - Peritos podem criar laudos e têm acesso limitado a certas operações
+   - Peritos podem criar laudos, vítimas e têm acesso limitado a certas operações
    - Assistentes têm acesso ainda mais restrito
 
 3. **Upload de Arquivos**: A rota de criação de evidências requer envio de arquivo via `multipart/form-data`.
 
 4. **Relatórios em PDF**: A exportação de relatórios em PDF retorna um arquivo binário, não um JSON.
 
-5. **Histórico Automático**: Algumas ações (como criar um relatório final) geram entradas automáticas no histórico.
+5. **Histórico Automático**: Algumas ações (como criar um relatório final ou cadastrar uma vítima) geram entradas automáticas no histórico.
 
 6. **Status do Caso**: Criar um relatório final altera automaticamente o status do caso para "Finalizado".
+
+7. **NIC Único**: O NIC (Número de Identificação Cadavérica) deve ser único para cada vítima cadastrada no sistema.
+
+8. **Odontograma**: As informações odontológicas são estruturadas em arcadas superior e inferior, permitindo registro detalhado do estado dos dentes.
+
+9. **Regiões Anatômicas**: Permite o registro de exames e achados em diferentes regiões anatômicas da vítima.
