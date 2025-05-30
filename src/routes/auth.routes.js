@@ -45,8 +45,3 @@ router.post('/login', async (req, res) => {
 });
 
 module.exports = router;
-
-<<<<<<< HEAD
-=======
-
->>>>>>> c8eacf05725f2797d0e85f77e114a1ebbba5fba5

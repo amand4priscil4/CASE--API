@@ -1,181 +1,252 @@
-const mongoose = require('mongoose');
+const Case = require('../models/case.model');
+const Historico = require('../models/historico.model');
 
-// Definindo um esquema GeoJSON para armazenar coordenadas
-const localizacaoSchema = new mongoose.Schema({
-  tipo: {
-    type: String,
-    enum: ['Point'],
-    default: 'Point'
-  },
-  coordenadas: {
-    type: [Number], // [longitude, latitude]
-    required: true,
-    validate: {
-      validator: function(v) {
-        return v.length === 2 && 
-               v[0] >= -180 && v[0] <= 180 && // longitude
-               v[1] >= -90 && v[1] <= 90;     // latitude
-      },
-      message: 'Coordenadas devem estar no formato [longitude, latitude] com valores válidos'
-    }
-  },
-  endereco: {
-    type: String,
-    required: false
-  },
-  complemento: {
-    type: String,
-    required: false
-  },
-  referencia: {
-    type: String,
-    required: false
-  }
-});
+// Criar novo caso
+exports.createCase = async (req, res) => {
+  try {
+    const { 
+      titulo, 
+      tipo, 
+      descricao, 
+      data, 
+      status, 
+      peritoResponsavel, 
+      localDoCaso,
+      localizacao 
+    } = req.body;
 
-const caseSchema = new mongoose.Schema({
-  titulo: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  tipo: {
-    type: String,
-    enum: [
-      'acidente',
-      'identificação de vítima',
-      'exame criminal',
-      'exumação',
-      'violência doméstica',
-      'avaliação de idade',
-      'avaliação de lesões',
-      'avaliação de danos corporais'
-    ],
-    required: true
-  },
-  descricao: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  data: {
-    type: Date,
-    default: Date.now
-  },
-  status: {
-    type: String,
-    enum: ['em andamento', 'finalizado', 'arquivado'],
-    default: 'em andamento'
-  },
-  peritoResponsavel: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // ✅ Consistente com user.model.js
-    required: true
-  },
-  localDoCaso: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  // ✅ Adicionando localização geográfica (usado no controller atualizado)
-  localizacaoGeo: {
-    type: localizacaoSchema,
-    required: false
-  },
-  criadoPor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // ✅ Consistente com user.model.js
-    required: true
-  },
-  // ✅ Campos adicionais para melhor rastreabilidade
-  ultimaAtualizacao: {
-    type: Date,
-    default: Date.now
-  },
-  atualizadoPor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: false
-  }
-}, { 
-  timestamps: true, // ✅ Cria createdAt e updatedAt automaticamente
-  // ✅ Índices para melhor performance
-  indexes: [
-    { status: 1 },
-    { peritoResponsavel: 1 },
-    { criadoPor: 1 },
-    { createdAt: -1 },
-    { 'localizacaoGeo.coordenadas': '2dsphere' } // Índice geoespacial
-  ]
-});
-
-// ✅ Middleware para atualizar ultimaAtualizacao
-caseSchema.pre('findOneAndUpdate', function() {
-  this.set({ ultimaAtualizacao: new Date() });
-});
-
-caseSchema.pre('updateOne', function() {
-  this.set({ ultimaAtualizacao: new Date() });
-});
-
-// ✅ Métodos virtuais para facilitar o uso
-caseSchema.virtual('temLocalizacao').get(function() {
-  return this.localizacaoGeo && this.localizacaoGeo.coordenadas && this.localizacaoGeo.coordenadas.length === 2;
-});
-
-// ✅ Método para buscar casos próximos (usado no controller)
-caseSchema.statics.findNearby = function(longitude, latitude, maxDistanceKm = 10) {
-  const maxDistanceMeters = maxDistanceKm * 1000;
-  
-  return this.find({
-    'localizacaoGeo.coordenadas': {
-      $near: {
-        $geometry: {
-          type: 'Point',
-          coordinates: [longitude, latitude]
-        },
-        $maxDistance: maxDistanceMeters
+    // Validação de coordenadas se fornecidas
+    if (localizacao && localizacao.coordenadas) {
+      const [longitude, latitude] = localizacao.coordenadas;
+      
+      if (longitude < -180 || longitude > 180) {
+        return res.status(400).json({ message: 'Longitude inválida. Deve estar entre -180 e 180.' });
+      }
+      
+      if (latitude < -90 || latitude > 90) {
+        return res.status(400).json({ message: 'Latitude inválida. Deve estar entre -90 e 90.' });
       }
     }
-  });
-};
 
-// ✅ Método para validar se o usuário pode editar o caso
-caseSchema.methods.canBeEditedBy = function(user) {
-  if (!user) return false;
-  
-  // Casos finalizados não podem ser editados
-  if (this.status === 'finalizado') return false;
-  
-  // Admin pode editar qualquer caso não finalizado
-  if (user.role === 'admin') return true;
-  
-  // Perito pode editar casos que criou
-  if (user.role === 'perito' && this.criadoPor.toString() === user.id) return true;
-  
-  return false;
-};
+    const novoCaso = new Case({
+      titulo,
+      tipo,
+      descricao,
+      data,
+      status,
+      peritoResponsavel,
+      localDoCaso,
+      localizacao: localizacao ? {
+        tipo: 'Point',
+        coordenadas: localizacao.coordenadas,
+        endereco: localizacao.endereco,
+        complemento: localizacao.complemento,
+        referencia: localizacao.referencia
+      } : undefined,
+      criadoPor: req.user.id
+    });
 
-// ✅ Método para validar se o usuário pode visualizar o caso
-caseSchema.methods.canBeViewedBy = function(user) {
-  if (!user) return false;
-  
-  // Admin pode ver qualquer caso
-  if (user.role === 'admin') return true;
-  
-  // Perito responsável pode ver o caso
-  if (this.peritoResponsavel.toString() === user.id) return true;
-  
-  // Criador pode ver o caso
-  if (this.criadoPor.toString() === user.id) return true;
-  
-  // Assistentes podem ver casos onde estão envolvidos
-  if (user.role === 'assistente') {
-    // Aqui você pode adicionar lógica adicional se necessário
-    return true;
+    await novoCaso.save();
+
+    // Registrar no histórico
+    await Historico.create({
+      acao: 'Caso criado',
+      usuario: req.user.id,
+      caso: novoCaso._id,
+      detalhes: `Caso "${titulo}" foi criado.`
+    });
+
+    res.status(201).json({ 
+      message: 'Caso criado com sucesso.', 
+      caso: novoCaso 
+    });
+  } catch (error) {
+    console.error('[ERRO] Criação de caso:', error);
+    res.status(500).json({ message: 'Erro ao criar o caso.' });
   }
-  
-  return false;
 };
 
-module.exports = mongoose.model('Case', caseSchema);
+// Listar todos os casos
+exports.getAllCases = async (req, res) => {
+  try {
+    const casos = await Case.find()
+      .populate('peritoResponsavel', 'name email')
+      .sort({ createdAt: -1 });
+      
+    res.status(200).json(casos);
+  } catch (error) {
+    console.error('[ERRO] Listagem de casos:', error);
+    res.status(500).json({ message: 'Erro ao buscar os casos.' });
+  }
+};
+
+// Buscar caso por ID
+exports.getCaseById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const caso = await Case.findById(id)
+      .populate('peritoResponsavel', 'name email');
+      
+    if (!caso) {
+      return res.status(404).json({ message: 'Caso não encontrado.' });
+    }
+
+    res.status(200).json(caso);
+  } catch (error) {
+    console.error('[ERRO] Buscar caso por ID:', error);
+    res.status(500).json({ message: 'Erro ao buscar o caso.' });
+  }
+};
+
+// Atualizar caso
+exports.updateCase = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      titulo, 
+      tipo, 
+      descricao, 
+      data, 
+      status, 
+      peritoResponsavel, 
+      localDoCaso,
+      localizacao 
+    } = req.body;
+
+    // Validação de coordenadas se fornecidas
+    if (localizacao && localizacao.coordenadas) {
+      const [longitude, latitude] = localizacao.coordenadas;
+      
+      if (longitude < -180 || longitude > 180) {
+        return res.status(400).json({ message: 'Longitude inválida. Deve estar entre -180 e 180.' });
+      }
+      
+      if (latitude < -90 || latitude > 90) {
+        return res.status(400).json({ message: 'Latitude inválida. Deve estar entre -90 e 90.' });
+      }
+    }
+
+    const atualizacoes = {};
+
+    if (titulo) atualizacoes.titulo = titulo;
+    if (tipo) atualizacoes.tipo = tipo;
+    if (descricao) atualizacoes.descricao = descricao;
+    if (data) atualizacoes.data = data;
+    if (status) atualizacoes.status = status;
+    if (peritoResponsavel) atualizacoes.peritoResponsavel = peritoResponsavel;
+    if (localDoCaso) atualizacoes.localDoCaso = localDoCaso;
+    
+    // Atualizar localização geográfica
+    if (localizacao) {
+      atualizacoes.localizacao = {
+        tipo: 'Point',
+        coordenadas: localizacao.coordenadas,
+        endereco: localizacao.endereco,
+        complemento: localizacao.complemento,
+        referencia: localizacao.referencia
+      };
+    }
+
+    const casoAtualizado = await Case.findByIdAndUpdate(id, atualizacoes, {
+      new: true,
+      runValidators: true
+    }).populate('peritoResponsavel', 'name email');
+
+    if (!casoAtualizado) {
+      return res.status(404).json({ message: 'Caso não encontrado.' });
+    }
+
+    // Registrar no histórico
+    await Historico.create({
+      acao: 'Caso atualizado',
+      usuario: req.user.id,
+      caso: id,
+      detalhes: `Caso "${casoAtualizado.titulo}" foi atualizado.`
+    });
+
+    res.status(200).json({ 
+      message: 'Caso atualizado com sucesso.', 
+      caso: casoAtualizado 
+    });
+  } catch (error) {
+    console.error('[ERRO] Atualização de caso:', error);
+    res.status(500).json({ message: 'Erro ao atualizar o caso.' });
+  }
+};
+
+// Buscar casos por proximidade geográfica
+exports.getCasesByLocation = async (req, res) => {
+  try {
+    const { longitude, latitude, distanceKm = 10 } = req.query;
+    
+    // Validar parâmetros
+    if (!longitude || !latitude) {
+      return res.status(400).json({ 
+        message: 'Longitude e latitude são obrigatórios para busca por localização.' 
+      });
+    }
+    
+    // Converter para números
+    const long = parseFloat(longitude);
+    const lat = parseFloat(latitude);
+    const distance = parseFloat(distanceKm);
+    
+    // Validar valores
+    if (isNaN(long) || isNaN(lat) || isNaN(distance)) {
+      return res.status(400).json({ 
+        message: 'Valores de longitude, latitude ou distância inválidos.' 
+      });
+    }
+    
+    // Converter km para metros (usado pelo MongoDB)
+    const distanceMeters = distance * 1000;
+    
+    // Buscar casos próximos utilizando geospatial query
+    const casos = await Case.find({
+      'localizacao.coordenadas': {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [long, lat]
+          },
+          $maxDistance: distanceMeters
+        }
+      }
+    }).populate('peritoResponsavel', 'name email');
+    
+    res.status(200).json(casos);
+  } catch (error) {
+    console.error('[ERRO] Busca por localização:', error);
+    res.status(500).json({ 
+      message: 'Erro ao buscar casos por localização.', 
+      error: error.message 
+    });
+  }
+};
+
+// Deletar caso
+exports.deleteCase = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const casoDeletado = await Case.findByIdAndDelete(id);
+
+    if (!casoDeletado) {
+      return res.status(404).json({ message: 'Caso não encontrado.' });
+    }
+
+    // Registrar no histórico
+    await Historico.create({
+      acao: 'Caso deletado',
+      usuario: req.user.id,
+      caso: id,
+      detalhes: `Caso "${casoDeletado.titulo}" foi removido.`
+    });
+
+    res.status(200).json({ message: 'Caso deletado com sucesso.' });
+  } catch (error) {
+    console.error('[ERRO] Exclusão de caso:', error);
+    res.status(500).json({ message: 'Erro ao deletar o caso.' });
+  }
+};
