@@ -1,5 +1,6 @@
 const Vitima = require('../models/vitima.model');
 const Historico = require('../models/historico.model');
+const Case = require('../models/case.model');
 
 // Criar vítima
 exports.createVitima = async (req, res) => {
@@ -21,6 +22,24 @@ exports.createVitima = async (req, res) => {
     if (!nic || !nome || !genero || !idade || !documento || !caso) {
       return res.status(400).json({ 
         message: 'Campos obrigatórios não preenchidos.' 
+      });
+    }
+
+    // ✅ Verificar se o caso existe e se o usuário tem permissão
+    const caseExists = await Case.findById(caso);
+    if (!caseExists) {
+      return res.status(404).json({ message: 'Caso não encontrado.' });
+    }
+
+    if (!caseExists.canBeViewedBy(req.user)) {
+      return res.status(403).json({ message: 'Acesso negado ao caso.' });
+    }
+
+    // ✅ Verificar se NIC já existe (evitar duplicatas)
+    const existingVitima = await Vitima.findOne({ nic });
+    if (existingVitima) {
+      return res.status(400).json({ 
+        message: 'NIC já existe no sistema.' 
       });
     }
 
@@ -47,7 +66,7 @@ exports.createVitima = async (req, res) => {
       acao: 'Vítima cadastrada',
       usuario: req.user.id,
       caso,
-      detalhes: `Vítima ${nome} foi cadastrada.`
+      detalhes: `Vítima ${nome} (NIC: ${nic}) foi cadastrada.`
     });
 
     res.status(201).json({
@@ -56,6 +75,22 @@ exports.createVitima = async (req, res) => {
     });
   } catch (error) {
     console.error('[ERRO] Cadastro de vítima:', error);
+    
+    // ✅ Tratamento específico para erro de validação do Mongoose
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Dados inválidos.',
+        details: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
+    // ✅ Tratamento para erro de duplicação (índice único)
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        message: 'NIC já existe no sistema.'
+      });
+    }
+
     res.status(500).json({ message: 'Erro ao cadastrar vítima.' });
   }
 };
@@ -65,7 +100,21 @@ exports.getVitimasByCaso = async (req, res) => {
   try {
     const { casoId } = req.params;
 
-    const vitimas = await Vitima.find({ caso: casoId });
+    // ✅ Verificar se o caso existe e se o usuário tem permissão
+    const caso = await Case.findById(casoId);
+    if (!caso) {
+      return res.status(404).json({ message: 'Caso não encontrado.' });
+    }
+
+    if (!caso.canBeViewedBy(req.user)) {
+      return res.status(403).json({ message: 'Acesso negado ao caso.' });
+    }
+
+    // ✅ Buscar vítimas com dados populados
+    const vitimas = await Vitima.find({ caso: casoId })
+      .populate('caso', 'titulo status')
+      .populate('criadoPor', 'name')
+      .sort({ createdAt: -1 });
 
     res.status(200).json(vitimas);
   } catch (error) {
@@ -79,9 +128,18 @@ exports.getVitimaById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const vitima = await Vitima.findById(id);
+    // ✅ Buscar vítima com dados populados
+    const vitima = await Vitima.findById(id)
+      .populate('caso', 'titulo status')
+      .populate('criadoPor', 'name');
+      
     if (!vitima) {
       return res.status(404).json({ message: 'Vítima não encontrada.' });
+    }
+
+    // ✅ Verificar permissão através do caso
+    if (!vitima.caso.canBeViewedBy || !vitima.caso.canBeViewedBy(req.user)) {
+      return res.status(403).json({ message: 'Acesso negado.' });
     }
 
     res.status(200).json(vitima);
@@ -98,9 +156,28 @@ exports.updateVitima = async (req, res) => {
     const updateData = req.body;
 
     // Verifica se a vítima existe
-    const vitima = await Vitima.findById(id);
+    const vitima = await Vitima.findById(id).populate('caso');
     if (!vitima) {
       return res.status(404).json({ message: 'Vítima não encontrada.' });
+    }
+
+    // ✅ Verificar permissão através do caso
+    if (!vitima.caso.canBeEditedBy || !vitima.caso.canBeEditedBy(req.user)) {
+      return res.status(403).json({ message: 'Acesso negado para editar.' });
+    }
+
+    // ✅ Se estiver atualizando o NIC, verificar se não existe outro igual
+    if (updateData.nic && updateData.nic !== vitima.nic) {
+      const existingVitima = await Vitima.findOne({ 
+        nic: updateData.nic,
+        _id: { $ne: id } // Excluir a própria vítima da busca
+      });
+      
+      if (existingVitima) {
+        return res.status(400).json({ 
+          message: 'NIC já existe no sistema.' 
+        });
+      }
     }
 
     // Atualiza os dados
@@ -108,13 +185,13 @@ exports.updateVitima = async (req, res) => {
       id, 
       updateData,
       { new: true, runValidators: true }
-    );
+    ).populate('caso', 'titulo').populate('criadoPor', 'name');
 
     // Registrar no histórico
     await Historico.create({
       acao: 'Vítima atualizada',
       usuario: req.user.id,
-      caso: vitima.caso,
+      caso: vitima.caso._id,
       detalhes: `Vítima ${vitima.nome} foi atualizada.`
     });
 
@@ -124,6 +201,21 @@ exports.updateVitima = async (req, res) => {
     });
   } catch (error) {
     console.error('[ERRO] Atualização de vítima:', error);
+    
+    // ✅ Tratamento de erros específicos
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Dados inválidos.',
+        details: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        message: 'NIC já existe no sistema.'
+      });
+    }
+
     res.status(500).json({ message: 'Erro ao atualizar vítima.' });
   }
 };
@@ -134,14 +226,20 @@ exports.deleteVitima = async (req, res) => {
     const { id } = req.params;
 
     // Verifica se a vítima existe
-    const vitima = await Vitima.findById(id);
+    const vitima = await Vitima.findById(id).populate('caso');
     if (!vitima) {
       return res.status(404).json({ message: 'Vítima não encontrada.' });
     }
 
+    // ✅ Verificar permissão através do caso
+    if (!vitima.caso.canBeEditedBy || !vitima.caso.canBeEditedBy(req.user)) {
+      return res.status(403).json({ message: 'Acesso negado para remover.' });
+    }
+
     // Armazena informações para o histórico
-    const casoId = vitima.caso;
+    const casoId = vitima.caso._id;
     const nomeVitima = vitima.nome;
+    const nicVitima = vitima.nic;
 
     // Remove a vítima
     await Vitima.findByIdAndDelete(id);
@@ -151,7 +249,7 @@ exports.deleteVitima = async (req, res) => {
       acao: 'Vítima removida',
       usuario: req.user.id,
       caso: casoId,
-      detalhes: `Vítima ${nomeVitima} foi removida.`
+      detalhes: `Vítima ${nomeVitima} (NIC: ${nicVitima}) foi removida.`
     });
 
     res.status(200).json({ message: 'Vítima removida com sucesso.' });
@@ -167,27 +265,34 @@ exports.updateOdontograma = async (req, res) => {
     const { id } = req.params;
     const { odontograma } = req.body;
 
-    const vitima = await Vitima.findByIdAndUpdate(
-      id,
-      { odontograma },
-      { new: true }
-    );
-
+    // ✅ Verificar se a vítima existe e permissões
+    const vitima = await Vitima.findById(id).populate('caso');
     if (!vitima) {
       return res.status(404).json({ message: 'Vítima não encontrada.' });
     }
+
+    if (!vitima.caso.canBeEditedBy || !vitima.caso.canBeEditedBy(req.user)) {
+      return res.status(403).json({ message: 'Acesso negado para editar.' });
+    }
+
+    // Atualizar odontograma
+    const vitimaAtualizada = await Vitima.findByIdAndUpdate(
+      id,
+      { odontograma },
+      { new: true, runValidators: true }
+    ).populate('caso', 'titulo').populate('criadoPor', 'name');
 
     // Registrar no histórico
     await Historico.create({
       acao: 'Odontograma atualizado',
       usuario: req.user.id,
-      caso: vitima.caso,
+      caso: vitima.caso._id,
       detalhes: `Odontograma da vítima ${vitima.nome} foi atualizado.`
     });
 
     res.status(200).json({ 
       message: 'Odontograma atualizado com sucesso',
-      vitima
+      vitima: vitimaAtualizada
     });
   } catch (error) {
     console.error('[ERRO] Atualização de odontograma:', error);
@@ -201,30 +306,62 @@ exports.updateRegioes = async (req, res) => {
     const { id } = req.params;
     const { regioesAnatomicas } = req.body;
 
-    const vitima = await Vitima.findByIdAndUpdate(
-      id,
-      { regioesAnatomicas },
-      { new: true }
-    );
-
+    // ✅ Verificar se a vítima existe e permissões
+    const vitima = await Vitima.findById(id).populate('caso');
     if (!vitima) {
       return res.status(404).json({ message: 'Vítima não encontrada.' });
     }
+
+    if (!vitima.caso.canBeEditedBy || !vitima.caso.canBeEditedBy(req.user)) {
+      return res.status(403).json({ message: 'Acesso negado para editar.' });
+    }
+
+    // Atualizar regiões anatômicas
+    const vitimaAtualizada = await Vitima.findByIdAndUpdate(
+      id,
+      { regioesAnatomicas },
+      { new: true, runValidators: true }
+    ).populate('caso', 'titulo').populate('criadoPor', 'name');
 
     // Registrar no histórico
     await Historico.create({
       acao: 'Regiões anatômicas atualizadas',
       usuario: req.user.id,
-      caso: vitima.caso,
+      caso: vitima.caso._id,
       detalhes: `Regiões anatômicas da vítima ${vitima.nome} foram atualizadas.`
     });
 
     res.status(200).json({ 
       message: 'Regiões anatômicas atualizadas com sucesso',
-      vitima
+      vitima: vitimaAtualizada
     });
   } catch (error) {
     console.error('[ERRO] Atualização de regiões anatômicas:', error);
     res.status(500).json({ message: 'Erro ao atualizar regiões anatômicas.' });
+  }
+};
+
+// ✅ Buscar vítima por NIC (método adicional útil)
+exports.getVitimaByNic = async (req, res) => {
+  try {
+    const { nic } = req.params;
+
+    const vitima = await Vitima.findOne({ nic })
+      .populate('caso', 'titulo status')
+      .populate('criadoPor', 'name');
+      
+    if (!vitima) {
+      return res.status(404).json({ message: 'Vítima não encontrada.' });
+    }
+
+    // Verificar permissão através do caso
+    if (!vitima.caso.canBeViewedBy || !vitima.caso.canBeViewedBy(req.user)) {
+      return res.status(403).json({ message: 'Acesso negado.' });
+    }
+
+    res.status(200).json(vitima);
+  } catch (error) {
+    console.error('[ERRO] Buscar vítima por NIC:', error);
+    res.status(500).json({ message: 'Erro ao buscar vítima.' });
   }
 };

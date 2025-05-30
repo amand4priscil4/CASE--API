@@ -1,6 +1,13 @@
-const app = require('./src/app'); // Importa a aplicação do app.js
-const PORT = process.env.PORT || 8080;
+const cors = require('cors');
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+// ADICIONAR ANTES DAS SUAS ROTAS:
+app.use(cors({
+  origin: [
+    'http://127.0.0.1:5500',
+    'http://localhost:3000',
+    'http://localhost:5173', 
+    'https://sistema-olin.netlify.app',
+    'https://opulent-capybara-5gw9g7p49q734xwj-5173.app.github.dev'
+  ],
+  credentials: true
+}));
