@@ -11,12 +11,21 @@ const localizacaoSchema = new mongoose.Schema({
     type: [Number], // [longitude, latitude]
     required: true,
     validate: {
+<<<<<<< HEAD
       validator: function(coordenadas) {
         return coordenadas.length === 2 && 
                coordenadas[0] >= -180 && coordenadas[0] <= 180 && // longitude
                coordenadas[1] >= -90 && coordenadas[1] <= 90;     // latitude
       },
       message: 'Coordenadas devem estar no formato [longitude, latitude] válido'
+=======
+      validator: function(v) {
+        return v.length === 2 && 
+               v[0] >= -180 && v[0] <= 180 && // longitude
+               v[1] >= -90 && v[1] <= 90;     // latitude
+      },
+      message: 'Coordenadas devem estar no formato [longitude, latitude] com valores válidos'
+>>>>>>> 9eeebffc900873ddd312a338d0d87724b0611b6c
     }
   },
   endereco: {
@@ -36,7 +45,8 @@ const localizacaoSchema = new mongoose.Schema({
 const caseSchema = new mongoose.Schema({
   titulo: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   tipo: {
     type: String,
@@ -54,7 +64,8 @@ const caseSchema = new mongoose.Schema({
   },
   descricao: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   data: {
     type: Date,
@@ -67,12 +78,18 @@ const caseSchema = new mongoose.Schema({
   },
   peritoResponsavel: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'User', // ✅ Consistente com user.model.js
     required: true
   },
   localDoCaso: {
     type: String,
-    required: true
+    required: true,
+    trim: true
+  },
+  // ✅ Adicionando localização geográfica (usado no controller atualizado)
+  localizacaoGeo: {
+    type: localizacaoSchema,
+    required: false
   },
   // ✅ NOVO: Campo de localização com coordenadas
   localizacao: {
@@ -81,12 +98,104 @@ const caseSchema = new mongoose.Schema({
   },
   criadoPor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'User', // ✅ Consistente com user.model.js
     required: true
+  },
+  // ✅ Campos adicionais para melhor rastreabilidade
+  ultimaAtualizacao: {
+    type: Date,
+    default: Date.now
+  },
+  atualizadoPor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
   }
-}, { timestamps: true });
+}, { 
+  timestamps: true, // ✅ Cria createdAt e updatedAt automaticamente
+  // ✅ Índices para melhor performance
+  indexes: [
+    { status: 1 },
+    { peritoResponsavel: 1 },
+    { criadoPor: 1 },
+    { createdAt: -1 },
+    { 'localizacaoGeo.coordenadas': '2dsphere' } // Índice geoespacial
+  ]
+});
 
+<<<<<<< HEAD
 // Índice geoespacial para consultas de proximidade
 caseSchema.index({ "localizacao.coordenadas": "2dsphere" });
 
+=======
+// ✅ Middleware para atualizar ultimaAtualizacao
+caseSchema.pre('findOneAndUpdate', function() {
+  this.set({ ultimaAtualizacao: new Date() });
+});
+
+caseSchema.pre('updateOne', function() {
+  this.set({ ultimaAtualizacao: new Date() });
+});
+
+// ✅ Métodos virtuais para facilitar o uso
+caseSchema.virtual('temLocalizacao').get(function() {
+  return this.localizacaoGeo && this.localizacaoGeo.coordenadas && this.localizacaoGeo.coordenadas.length === 2;
+});
+
+// ✅ Método para buscar casos próximos (usado no controller)
+caseSchema.statics.findNearby = function(longitude, latitude, maxDistanceKm = 10) {
+  const maxDistanceMeters = maxDistanceKm * 1000;
+  
+  return this.find({
+    'localizacaoGeo.coordenadas': {
+      $near: {
+        $geometry: {
+          type: 'Point',
+          coordinates: [longitude, latitude]
+        },
+        $maxDistance: maxDistanceMeters
+      }
+    }
+  });
+};
+
+// ✅ Método para validar se o usuário pode editar o caso
+caseSchema.methods.canBeEditedBy = function(user) {
+  if (!user) return false;
+  
+  // Casos finalizados não podem ser editados
+  if (this.status === 'finalizado') return false;
+  
+  // Admin pode editar qualquer caso não finalizado
+  if (user.role === 'admin') return true;
+  
+  // Perito pode editar casos que criou
+  if (user.role === 'perito' && this.criadoPor.toString() === user.id) return true;
+  
+  return false;
+};
+
+// ✅ Método para validar se o usuário pode visualizar o caso
+caseSchema.methods.canBeViewedBy = function(user) {
+  if (!user) return false;
+  
+  // Admin pode ver qualquer caso
+  if (user.role === 'admin') return true;
+  
+  // Perito responsável pode ver o caso
+  if (this.peritoResponsavel.toString() === user.id) return true;
+  
+  // Criador pode ver o caso
+  if (this.criadoPor.toString() === user.id) return true;
+  
+  // Assistentes podem ver casos onde estão envolvidos
+  if (user.role === 'assistente') {
+    // Aqui você pode adicionar lógica adicional se necessário
+    return true;
+  }
+  
+  return false;
+};
+
+>>>>>>> 9eeebffc900873ddd312a338d0d87724b0611b6c
 module.exports = mongoose.model('Case', caseSchema);

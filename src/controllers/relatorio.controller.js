@@ -1,6 +1,6 @@
 const RelatorioFinal = require('../models/relatorio.model');
 const PDFDocument = require('pdfkit');
-const Caso = require('../models/case.model');
+const Case = require('../models/case.model'); // ✅ CORRIGIDO: Case, não Caso
 const User = require('../models/user.model');
 const Historico = require('../models/historico.model');
 
@@ -10,7 +10,9 @@ exports.criarRelatorioFinal = async (req, res) => {
     const { titulo, texto } = req.body;
     const userId = req.user.id;
 
-    const caso = await Caso.findById(caseId).populate('responsavel');
+    // ✅ CORRIGIDO: Case.findById em vez de Caso.findById
+    // ✅ CORRIGIDO: populate('peritoResponsavel') em vez de populate('responsavel')
+    const caso = await Case.findById(caseId).populate('peritoResponsavel');
 
     if (!caso) return res.status(404).json({ error: 'Caso não encontrado' });
 
@@ -20,8 +22,8 @@ Relatório Final
 
 Caso: ${caso.titulo}
 Número do Caso: ${caso._id}
-Responsável: ${caso.responsavel?.nome || 'Não informado'}
-Data de Abertura: ${caso.criadoEm?.toLocaleDateString('pt-BR') || 'N/A'}
+Responsável: ${caso.peritoResponsavel?.name || 'Não informado'}
+Data de Abertura: ${caso.createdAt?.toLocaleDateString('pt-BR') || 'N/A'}
 Status: ${caso.status}
 
 -----------------------------
@@ -34,8 +36,8 @@ Status: ${caso.status}
       texto: cabecalho + '\n' + texto
     });
 
-    // Atualiza status do caso para "Fechado"
-    caso.status = 'Finalizado';
+    // Atualiza status do caso para "Finalizado"
+    caso.status = 'finalizado'; // ✅ CORRIGIDO: usar enum correto do model
     await caso.save();
 
     // Salva histórico
@@ -51,7 +53,7 @@ Status: ${caso.status}
       relatorio
     });
   } catch (err) {
-    console.error(err);
+    console.error('[ERRO] Criar relatório final:', err);
     res.status(500).json({ error: 'Erro ao criar relatório final.' });
   }
 };
@@ -60,7 +62,9 @@ exports.getRelatorioPorCaso = async (req, res) => {
   try {
     const { caseId } = req.params;
 
-    const relatorio = await RelatorioFinal.findOne({ caso: caseId }).populate('criadoPor', 'nome');
+    // ✅ CORRIGIDO: populate('criadoPor', 'name') em vez de 'nome'
+    const relatorio = await RelatorioFinal.findOne({ caso: caseId })
+      .populate('criadoPor', 'name');
 
     if (!relatorio) {
       return res.status(404).json({ error: 'Relatório não encontrado para este caso.' });
@@ -68,7 +72,7 @@ exports.getRelatorioPorCaso = async (req, res) => {
 
     res.status(200).json(relatorio);
   } catch (err) {
-    console.error(err);
+    console.error('[ERRO] Buscar relatório:', err);
     res.status(500).json({ error: 'Erro ao buscar relatório.' });
   }
 };
@@ -77,15 +81,17 @@ exports.exportarRelatorioPDF = async (req, res) => {
   try {
     const { caseId } = req.params;
 
+    // ✅ CORRIGIDO: populate correto
     const relatorio = await RelatorioFinal.findOne({ caso: caseId })
-      .populate('criadoPor', 'nome')
+      .populate('criadoPor', 'name')
       .populate('caso');
 
     if (!relatorio) {
       return res.status(404).json({ error: 'Relatório não encontrado para este caso.' });
     }
 
-    const caso = await Caso.findById(caseId).populate('responsavel', 'nome');
+    // ✅ CORRIGIDO: Case.findById e populate correto
+    const caso = await Case.findById(caseId).populate('peritoResponsavel', 'name');
 
     // Cria o PDF
     const doc = new PDFDocument();
@@ -104,7 +110,8 @@ exports.exportarRelatorioPDF = async (req, res) => {
     doc.fontSize(12).text(`Título do Relatório: ${relatorio.titulo}`);
     doc.text(`Caso: ${caso.titulo}`);
     doc.text(`Número do Caso: ${caso._id}`);
-    doc.text(`Responsável: ${caso.responsavel?.nome || 'Não informado'}`);
+    // ✅ CORRIGIDO: peritoResponsavel?.name em vez de responsavel?.nome
+    doc.text(`Responsável: ${caso.peritoResponsavel?.name || 'Não informado'}`);
     doc.text(`Status: ${caso.status}`);
     doc.text(`Criado em: ${new Date(relatorio.criadoEm).toLocaleDateString('pt-BR')}`);
     doc.moveDown();
@@ -117,7 +124,7 @@ exports.exportarRelatorioPDF = async (req, res) => {
 
     doc.end(); // Finaliza o documento
   } catch (err) {
-    console.error(err);
+    console.error('[ERRO] Exportar relatório PDF:', err);
     res.status(500).json({ error: 'Erro ao exportar relatório em PDF.' });
   }
 };

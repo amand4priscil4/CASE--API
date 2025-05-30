@@ -22,8 +22,12 @@ app.use(
       'http://localhost:3000',
       'http://localhost:5173',
       'https://sistema-olin.netlify.app',
+<<<<<<< HEAD
       'https://opulent-capybara-5gw9g7p49q734xwj-5173.app.github.dev',
       /^https:\/\/.*\.app\.github\.dev$/ // Aceita qualquer Codespace
+=======
+      'https://opulent-capybara-5gw9g7p49q734xwj-5173.app.github.dev'
+>>>>>>> 9eeebffc900873ddd312a338d0d87724b0611b6c
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
