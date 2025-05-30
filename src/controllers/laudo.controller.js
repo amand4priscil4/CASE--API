@@ -34,3 +34,24 @@ exports.createLaudo = async (req, res) => {
     res.status(500).json({ message: 'Erro ao criar laudo.' });
   }
 };
+
+// Buscar laudos por caso
+exports.getLaudosByCaso = async (req, res) => {
+  try {
+    const { casoId } = req.query;
+    
+    if (!casoId) {
+      return res.status(400).json({ message: 'ID do caso não informado.' });
+    }
+
+    const laudos = await Laudo.find({ caso: casoId })
+      .populate('autor', 'name')
+      .populate('evidencias')
+      .sort({ criadoEm: -1 });
+
+    res.status(200).json(laudos);
+  } catch (error) {
+    console.error('[ERRO] Buscar laudos:', error);
+    res.status(500).json({ message: 'Erro ao buscar laudos.' });
+  }
+};

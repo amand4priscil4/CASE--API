@@ -5,7 +5,9 @@ const laudoController = require('../controllers/laudo.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleCheck = require('../middlewares/roleCheck.middleware');
 
-// Exemplo de rota:
+// Criar laudo de evidência
 router.post('/', authMiddleware, roleCheck(['admin', 'perito']), laudoController.createLaudo);
+// Buscar laudos por caso
+router.get('/', authMiddleware, laudoController.getLaudosByCaso);
 
 module.exports = router;
