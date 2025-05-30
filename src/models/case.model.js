@@ -9,7 +9,15 @@ const localizacaoSchema = new mongoose.Schema({
   },
   coordenadas: {
     type: [Number], // [longitude, latitude]
-    required: true
+    required: true,
+    validate: {
+      validator: function(coordenadas) {
+        return coordenadas.length === 2 && 
+               coordenadas[0] >= -180 && coordenadas[0] <= 180 && // longitude
+               coordenadas[1] >= -90 && coordenadas[1] <= 90;     // latitude
+      },
+      message: 'Coordenadas devem estar no formato [longitude, latitude] válido'
+    }
   },
   endereco: {
     type: String,
@@ -31,19 +39,19 @@ const caseSchema = new mongoose.Schema({
     required: true
   },
   tipo: {
-  type: String,
-  enum: [
-    'acidente',
-    'identificação de vítima',
-    'exame criminal',
-    'exumação',
-    'violência doméstica',
-    'avaliação de idade',
-    'avaliação de lesões',
-    'avaliação de danos corporais'
-  ],
-  required: true
-},
+    type: String,
+    enum: [
+      'acidente',
+      'identificação de vítima',
+      'exame criminal',
+      'exumação',
+      'violência doméstica',
+      'avaliação de idade',
+      'avaliação de lesões',
+      'avaliação de danos corporais'
+    ],
+    required: true
+  },
   descricao: {
     type: String,
     required: true
@@ -66,6 +74,11 @@ const caseSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // ✅ NOVO: Campo de localização com coordenadas
+  localizacao: {
+    type: localizacaoSchema,
+    required: false // Opcional para casos antigos
+  },
   criadoPor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -73,5 +86,7 @@ const caseSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Case', caseSchema);
+// Índice geoespacial para consultas de proximidade
+caseSchema.index({ "localizacao.coordenadas": "2dsphere" });
 
+module.exports = mongoose.model('Case', caseSchema);

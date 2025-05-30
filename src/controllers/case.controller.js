@@ -12,12 +12,12 @@ exports.createCase = async (req, res) => {
       status, 
       peritoResponsavel, 
       localDoCaso,
-      localizacaoGeo 
+      localizacao 
     } = req.body;
 
     // Validação de coordenadas se fornecidas
-    if (localizacaoGeo && localizacaoGeo.coordenadas) {
-      const [longitude, latitude] = localizacaoGeo.coordenadas;
+    if (localizacao && localizacao.coordenadas) {
+      const [longitude, latitude] = localizacao.coordenadas;
       
       if (longitude < -180 || longitude > 180) {
         return res.status(400).json({ message: 'Longitude inválida. Deve estar entre -180 e 180.' });
@@ -36,12 +36,12 @@ exports.createCase = async (req, res) => {
       status,
       peritoResponsavel,
       localDoCaso,
-      localizacaoGeo: localizacaoGeo ? {
+      localizacao: localizacao ? {
         tipo: 'Point',
-        coordenadas: localizacaoGeo.coordenadas,
-        endereco: localizacaoGeo.endereco,
-        complemento: localizacaoGeo.complemento,
-        referencia: localizacaoGeo.referencia
+        coordenadas: localizacao.coordenadas,
+        endereco: localizacao.endereco,
+        complemento: localizacao.complemento,
+        referencia: localizacao.referencia
       } : undefined,
       criadoPor: req.user.id
     });
@@ -111,12 +111,12 @@ exports.updateCase = async (req, res) => {
       status, 
       peritoResponsavel, 
       localDoCaso,
-      localizacaoGeo 
+      localizacao 
     } = req.body;
 
     // Validação de coordenadas se fornecidas
-    if (localizacaoGeo && localizacaoGeo.coordenadas) {
-      const [longitude, latitude] = localizacaoGeo.coordenadas;
+    if (localizacao && localizacao.coordenadas) {
+      const [longitude, latitude] = localizacao.coordenadas;
       
       if (longitude < -180 || longitude > 180) {
         return res.status(400).json({ message: 'Longitude inválida. Deve estar entre -180 e 180.' });
@@ -138,13 +138,13 @@ exports.updateCase = async (req, res) => {
     if (localDoCaso) atualizacoes.localDoCaso = localDoCaso;
     
     // Atualizar localização geográfica
-    if (localizacaoGeo) {
-      atualizacoes.localizacaoGeo = {
+    if (localizacao) {
+      atualizacoes.localizacao = {
         tipo: 'Point',
-        coordenadas: localizacaoGeo.coordenadas,
-        endereco: localizacaoGeo.endereco,
-        complemento: localizacaoGeo.complemento,
-        referencia: localizacaoGeo.referencia
+        coordenadas: localizacao.coordenadas,
+        endereco: localizacao.endereco,
+        complemento: localizacao.complemento,
+        referencia: localizacao.referencia
       };
     }
 
@@ -204,7 +204,7 @@ exports.getCasesByLocation = async (req, res) => {
     
     // Buscar casos próximos utilizando geospatial query
     const casos = await Case.find({
-      'localizacaoGeo.coordenadas': {
+      'localizacao.coordenadas': {
         $near: {
           $geometry: {
             type: 'Point',
@@ -225,8 +225,7 @@ exports.getCasesByLocation = async (req, res) => {
   }
 };
 
-// Outras funções existentes...
-// Deletar caso (mantém-se a mesma)
+// Deletar caso
 exports.deleteCase = async (req, res) => {
   try {
     const { id } = req.params;
