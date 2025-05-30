@@ -20,7 +20,7 @@ app.use(
       'http://localhost:3000',
       'http://localhost:5173',
       'https://sistema-olin.netlify.app',
-      'https://opulent-capybara-5gw9g7p49q734xwj-5173.app.github.dev/'
+      'https://opulent-capybara-5gw9g7p49q734xwj-5173.app.github.dev'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
