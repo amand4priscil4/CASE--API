@@ -4,6 +4,148 @@ const Historico = require('../models/historico.model');
 const fs = require('fs');
 const path = require('path');
 
+// Função para organizar odontograma por quadrantes
+const organizarOdontogramaPorQuadrantes = (odontograma) => {
+  const quadrantes = {
+    superiorDireito: { nome: 'Superior Direito (1º Quadrante)', dentes: [] },
+    superiorEsquerdo: { nome: 'Superior Esquerdo (2º Quadrante)', dentes: [] },
+    inferiorEsquerdo: { nome: 'Inferior Esquerdo (3º Quadrante)', dentes: [] },
+    inferiorDireito: { nome: 'Inferior Direito (4º Quadrante)', dentes: [] }
+  };
+
+  // Definir intervalos de dentes por quadrante
+  const intervalos = {
+    superiorDireito: { adulto: [18, 11], infantil: [55, 51] },
+    superiorEsquerdo: { adulto: [21, 28], infantil: [61, 65] },
+    inferiorEsquerdo: { adulto: [31, 38], infantil: [71, 75] },
+    inferiorDireito: { adulto: [41, 48], infantil: [81, 85] }
+  };
+
+  const tipoOdontograma = odontograma.tipoOdontograma || 'adulto';
+
+  // Organizar arcada superior
+  if (odontograma.arcadaSuperior) {
+    odontograma.arcadaSuperior.forEach(dente => {
+      if (dente.condicoes && dente.condicoes.length > 0) {
+        const numero = parseInt(dente.numero);
+        const denteData = {
+          numero: dente.numero,
+          condicoes: dente.condicoes.map(c => ({
+            tipo: c.tipo,
+            descricao: c.descricao || '',
+            faces: c.faces || []
+          })),
+          observacoes: dente.observacoes || ''
+        };
+
+        // Superior Direito
+        const sdInterval = intervalos.superiorDireito[tipoOdontograma];
+        if (numero >= sdInterval[1] && numero <= sdInterval[0]) {
+          quadrantes.superiorDireito.dentes.push(denteData);
+        }
+        
+        // Superior Esquerdo
+        const seInterval = intervalos.superiorEsquerdo[tipoOdontograma];
+        if (numero >= seInterval[0] && numero <= seInterval[1]) {
+          quadrantes.superiorEsquerdo.dentes.push(denteData);
+        }
+      }
+    });
+  }
+
+  // Organizar arcada inferior
+  if (odontograma.arcadaInferior) {
+    odontograma.arcadaInferior.forEach(dente => {
+      if (dente.condicoes && dente.condicoes.length > 0) {
+        const numero = parseInt(dente.numero);
+        const denteData = {
+          numero: dente.numero,
+          condicoes: dente.condicoes.map(c => ({
+            tipo: c.tipo,
+            descricao: c.descricao || '',
+            faces: c.faces || []
+          })),
+          observacoes: dente.observacoes || ''
+        };
+
+        // Inferior Esquerdo
+        const ieInterval = intervalos.inferiorEsquerdo[tipoOdontograma];
+        if (numero >= ieInterval[0] && numero <= ieInterval[1]) {
+          quadrantes.inferiorEsquerdo.dentes.push(denteData);
+        }
+        
+        // Inferior Direito
+        const idInterval = intervalos.inferiorDireito[tipoOdontograma];
+        if (numero >= idInterval[0] && numero <= idInterval[1]) {
+          quadrantes.inferiorDireito.dentes.push(denteData);
+        }
+      }
+    });
+  }
+
+  // Ordenar dentes dentro de cada quadrante
+  Object.keys(quadrantes).forEach(key => {
+    quadrantes[key].dentes.sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
+  });
+
+  return quadrantes;
+};
+
+// Função para formatar o texto do laudo
+const formatarTextoLaudo = (vitima, odontograma, observacoes, parecer) => {
+  const quadrantes = organizarOdontogramaPorQuadrantes(odontograma);
+  
+  let textoLaudo = `LAUDO ODONTOLÓGICO
+
+Dados da Vítima:
+Nome: ${vitima.nome}
+NIC: ${vitima.nic}
+Gênero: ${vitima.genero}
+Idade: ${vitima.idade} anos
+
+DESCRIÇÃO DAS ALTERAÇÕES DENTÁRIAS
+
+`;
+
+  // Adicionar cada quadrante que tem alterações
+  Object.keys(quadrantes).forEach(key => {
+    const quadrante = quadrantes[key];
+    if (quadrante.dentes.length > 0) {
+      textoLaudo += `${quadrante.nome}:\n\n`;
+      textoLaudo += `Dente\tCaracterística\t\t\tObservação\n`;
+      textoLaudo += `─────────────────────────────────────────────────────────────\n`;
+      
+      quadrante.dentes.forEach(dente => {
+        dente.condicoes.forEach((condicao, index) => {
+          const denteNum = index === 0 ? dente.numero : '';
+          const caracteristica = condicao.tipo.charAt(0).toUpperCase() + condicao.tipo.slice(1);
+          const obs = index === 0 ? dente.observacoes : '';
+          
+          textoLaudo += `${denteNum}\t${caracteristica}\t\t\t${obs}\n`;
+        });
+      });
+      textoLaudo += `\n`;
+    }
+  });
+
+  // Adicionar observações gerais
+  if (observacoes || odontograma.observacoesGerais) {
+    textoLaudo += `OBSERVAÇÕES:\n`;
+    textoLaudo += `${observacoes || odontograma.observacoesGerais}\n\n`;
+  }
+
+  // Adicionar parecer técnico
+  textoLaudo += `PARECER TÉCNICO:\n`;
+  textoLaudo += `${parecer}\n\n`;
+
+  textoLaudo += `Data do Exame: ${new Date().toLocaleDateString('pt-BR')}\n`;
+  
+  return {
+    textoCompleto: textoLaudo,
+    quadrantesEstruturados: quadrantes
+  };
+};
+
 // Criar laudo odontológico
 exports.criarLaudoOdontologico = async (req, res) => {
   try {
@@ -12,27 +154,44 @@ exports.criarLaudoOdontologico = async (req, res) => {
     const peritoId = req.user.id;
 
     // Verificar se a vítima existe
-    const vitima = await Vitima.findById(vitimaId);
+    const vitima = await Vitima.findById(vitimaId).populate('caso', 'titulo');
     if (!vitima) {
       return res.status(404).json({ message: 'Vítima não encontrada.' });
     }
 
     // Validar se o usuário é um perito odontológico
-    // Isso depende da configuração do seu sistema de permissões
     if (req.user.role !== 'perito' && req.user.role !== 'admin') {
       return res.status(403).json({ 
         message: 'Apenas peritos odontológicos podem emitir laudos odontológicos.' 
       });
     }
 
+    // Validar parecer obrigatório
+    if (!parecer || parecer.trim() === '') {
+      return res.status(400).json({ message: 'O parecer técnico é obrigatório.' });
+    }
+
+    // Obter odontograma atual se não foi fornecido snapshot
+    let odontogramaParaLaudo = odontogramaSnapshot;
+    if (!odontogramaParaLaudo) {
+      // Buscar odontograma atual da vítima
+      odontogramaParaLaudo = vitima.odontograma;
+    }
+
+    // Formatar o texto do laudo
+    const laudoFormatado = formatarTextoLaudo(vitima, odontogramaParaLaudo, observacoes, parecer);
+
     // Criar o laudo
     const novoLaudo = new LaudoOdontologico({
       vitima: vitimaId,
       perito: peritoId,
-      caso: vitima.caso,
-      observacoes,
+      caso: vitima.caso._id,
+      observacoes: observacoes || '',
       parecer,
-      odontogramaSnapshot: odontogramaSnapshot || vitima.odontograma
+      textoCompleto: laudoFormatado.textoCompleto,
+      quadrantesEstruturados: laudoFormatado.quadrantesEstruturados,
+      odontogramaSnapshot: odontogramaParaLaudo,
+      tipoOdontograma: odontogramaParaLaudo.tipoOdontograma || 'adulto'
     });
 
     await novoLaudo.save();
@@ -41,7 +200,7 @@ exports.criarLaudoOdontologico = async (req, res) => {
     await Historico.create({
       acao: 'Laudo odontológico emitido',
       usuario: peritoId,
-      caso: vitima.caso,
+      caso: vitima.caso._id,
       detalhes: `Laudo odontológico emitido para a vítima ${vitima.nome}.`
     });
 
@@ -51,7 +210,7 @@ exports.criarLaudoOdontologico = async (req, res) => {
     });
   } catch (error) {
     console.error('[ERRO] Criação de laudo odontológico:', error);
-    res.status(500).json({ message: 'Erro ao criar laudo odontológico.' });
+    res.status(500).json({ message: 'Erro ao criar laudo odontológico.', error: error.message });
   }
 };
 
@@ -62,6 +221,7 @@ exports.listarLaudosOdontologicos = async (req, res) => {
 
     const laudos = await LaudoOdontologico.find({ vitima: vitimaId })
       .populate('perito', 'name email')
+      .populate('vitima', 'nome nic')
       .sort({ dataEmissao: -1 });
 
     res.status(200).json(laudos);
@@ -77,9 +237,9 @@ exports.obterLaudoOdontologico = async (req, res) => {
     const { laudoId } = req.params;
 
     const laudo = await LaudoOdontologico.findById(laudoId)
-      .populate('vitima', 'nome nic genero idade')
+      .populate('vitima', 'nome nic genero idade documento endereco')
       .populate('perito', 'name email')
-      .populate('caso', 'titulo numero');
+      .populate('caso', 'titulo');
 
     if (!laudo) {
       return res.status(404).json({ message: 'Laudo odontológico não encontrado.' });
@@ -100,7 +260,7 @@ exports.atualizarLaudoOdontologico = async (req, res) => {
     const peritoId = req.user.id;
 
     // Verificar se o laudo existe
-    const laudo = await LaudoOdontologico.findById(laudoId);
+    const laudo = await LaudoOdontologico.findById(laudoId).populate('vitima');
     if (!laudo) {
       return res.status(404).json({ message: 'Laudo odontológico não encontrado.' });
     }
@@ -112,9 +272,25 @@ exports.atualizarLaudoOdontologico = async (req, res) => {
       });
     }
 
-    // Atualizar apenas os campos permitidos
-    laudo.observacoes = observacoes;
+    // Validar parecer obrigatório
+    if (!parecer || parecer.trim() === '') {
+      return res.status(400).json({ message: 'O parecer técnico é obrigatório.' });
+    }
+
+    // Regenerar texto do laudo com as novas informações
+    const laudoFormatado = formatarTextoLaudo(
+      laudo.vitima, 
+      laudo.odontogramaSnapshot, 
+      observacoes, 
+      parecer
+    );
+
+    // Atualizar os campos
+    laudo.observacoes = observacoes || '';
     laudo.parecer = parecer;
+    laudo.textoCompleto = laudoFormatado.textoCompleto;
+    laudo.quadrantesEstruturados = laudoFormatado.quadrantesEstruturados;
+    
     await laudo.save();
 
     // Registrar no histórico
@@ -201,5 +377,30 @@ exports.baixarPDFLaudo = async (req, res) => {
   } catch (error) {
     console.error('[ERRO] Download de PDF de laudo:', error);
     res.status(500).json({ message: 'Erro ao baixar arquivo PDF do laudo.' });
+  }
+};
+
+// Exportar laudo em formato texto estruturado
+exports.exportarLaudoTexto = async (req, res) => {
+  try {
+    const { laudoId } = req.params;
+
+    const laudo = await LaudoOdontologico.findById(laudoId)
+      .populate('vitima', 'nome nic genero idade')
+      .populate('perito', 'name email');
+
+    if (!laudo) {
+      return res.status(404).json({ message: 'Laudo odontológico não encontrado.' });
+    }
+
+    // Definir cabeçalhos para download
+    res.setHeader('Content-Disposition', `attachment; filename="laudo_${laudo._id}.txt"`);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+
+    // Enviar o texto do laudo
+    res.send(laudo.textoCompleto);
+  } catch (error) {
+    console.error('[ERRO] Exportar laudo texto:', error);
+    res.status(500).json({ message: 'Erro ao exportar laudo em texto.' });
   }
 };

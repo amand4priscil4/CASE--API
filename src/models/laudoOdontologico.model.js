@@ -12,39 +12,47 @@ const laudoOdontologicoSchema = new Schema({
     ref: 'User',
     required: true
   },
+  caso: {
+    type: Schema.Types.ObjectId,
+    ref: 'Case',
+    required: true
+  },
   dataEmissao: {
     type: Date,
     default: Date.now
   },
-  tipo: {
-    type: String,
-    default: 'odontologico'
-  },
   observacoes: {
-    type: String
+    type: String,
+    default: ''
   },
   parecer: {
     type: String,
     required: true
   },
-  // Armazena um snapshot do odontograma no momento da criação do laudo
-  odontogramaSnapshot: {
-    type: Map,
-    of: new Schema({
-      caracteristica: String,
-      observacao: String,
-      dataRegistro: Date
-    }),
+  // Texto formatado completo do laudo
+  textoCompleto: {
+    type: String,
+    required: true
+  },
+  // Dados estruturados por quadrantes
+  quadrantesEstruturados: {
+    type: Object,
     default: {}
   },
-  // Armazena o caminho do arquivo PDF gerado
+  // Tipo de odontograma usado
+  tipoOdontograma: {
+    type: String,
+    enum: ['adulto', 'infantil'],
+    default: 'adulto'
+  },
+  // Snapshot do odontograma no momento da criação
+  odontogramaSnapshot: {
+    type: Object,
+    required: true
+  },
+  // Arquivo PDF gerado
   arquivoPDF: {
     type: String
-  },
-  caso: {
-    type: Schema.Types.ObjectId,
-    ref: 'Case',
-    required: true
   }
 }, { timestamps: true });
 

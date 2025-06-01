@@ -35,6 +35,13 @@ router.put(
   laudoOdontologicoController.atualizarLaudoOdontologico
 );
 
+// Exportar laudo em formato texto ⬅️ NOVA ROTA
+router.get(
+  '/:laudoId/texto',
+  authMiddleware,
+  laudoOdontologicoController.exportarLaudoTexto
+);
+
 // Salvar o arquivo PDF do laudo
 router.post(
   '/:laudoId/pdf',
