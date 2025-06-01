@@ -37,15 +37,16 @@ app.use(express.json());
 require('./create/createAdmin');
 
 // Importações das rotas
-const authRoutes = require('./routes/auth.routes'); // Login, geração de token
-const protectedRoutes = require('./routes/protected.routes'); // Rotas protegidas genéricas
-const userRoutes = require('./routes/user.routes'); // Cadastro, update e listagem de usuários
-const caseRoutes = require('./routes/case.routes'); // Gerenciamento de casos (CRUD)
-const evidenceRoutes = require('./routes/evidence.routes'); // Gerenciamento de evidências
-const laudoRoutes = require('./routes/laudo.routes'); // Gerenciamento de laudos
-const relatorioRoutes = require('./routes/relatorio.routes'); // Criação do relatório final
-const historicoRoutes = require('./routes/historico.routes'); // Gerenciamento de histórico
-const vitimaRoutes = require('./routes/vitima.routes'); // Gerenciamento de vítimas
+const authRoutes = require('./routes/auth.routes'); 
+const protectedRoutes = require('./routes/protected.routes'); 
+const userRoutes = require('./routes/user.routes'); 
+const caseRoutes = require('./routes/case.routes'); 
+const evidenceRoutes = require('./routes/evidence.routes'); 
+const laudoRoutes = require('./routes/laudo.routes'); 
+const relatorioRoutes = require('./routes/relatorio.routes'); 
+const historicoRoutes = require('./routes/historico.routes'); 
+const vitimaRoutes = require('./routes/vitima.routes'); 
+const laudoOdontologicoRoutes = require('./routes/laudoOdontologico.routes');
 
 // Configuração das rotas
 app.use('/api', authRoutes); // /api/login
@@ -57,6 +58,7 @@ app.use('/api/laudos', laudoRoutes); // /api/laudos
 app.use('/api/relatorios', relatorioRoutes); // /api/relatorios
 app.use('/api/historico', historicoRoutes); // /api/historico
 app.use('/api/vitimas', vitimaRoutes); // /api/vitimas
+app.use('/api/laudos-odontologicos', laudoOdontologicoRoutes);
 
 // Rota de teste
 app.get('/', (req, res) => {
