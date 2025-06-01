@@ -11,21 +11,12 @@ const localizacaoSchema = new mongoose.Schema({
     type: [Number], // [longitude, latitude]
     required: true,
     validate: {
-<<<<<<< HEAD
-      validator: function(coordenadas) {
-        return coordenadas.length === 2 && 
-               coordenadas[0] >= -180 && coordenadas[0] <= 180 && // longitude
-               coordenadas[1] >= -90 && coordenadas[1] <= 90;     // latitude
-      },
-      message: 'Coordenadas devem estar no formato [longitude, latitude] válido'
-=======
       validator: function(v) {
         return v.length === 2 && 
                v[0] >= -180 && v[0] <= 180 && // longitude
                v[1] >= -90 && v[1] <= 90;     // latitude
       },
       message: 'Coordenadas devem estar no formato [longitude, latitude] com valores válidos'
->>>>>>> 9eeebffc900873ddd312a338d0d87724b0611b6c
     }
   },
   endereco: {
@@ -123,11 +114,6 @@ const caseSchema = new mongoose.Schema({
   ]
 });
 
-<<<<<<< HEAD
-// Índice geoespacial para consultas de proximidade
-caseSchema.index({ "localizacao.coordenadas": "2dsphere" });
-
-=======
 // ✅ Middleware para atualizar ultimaAtualizacao
 caseSchema.pre('findOneAndUpdate', function() {
   this.set({ ultimaAtualizacao: new Date() });
@@ -197,5 +183,4 @@ caseSchema.methods.canBeViewedBy = function(user) {
   return false;
 };
 
->>>>>>> 9eeebffc900873ddd312a338d0d87724b0611b6c
 module.exports = mongoose.model('Case', caseSchema);
