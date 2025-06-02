@@ -179,7 +179,13 @@ Authorization: Bearer <token>
   "data": "2023-01-01T00:00:00.000Z",
   "status": "em andamento",
   "peritoResponsavel": "60d21b4667d0d8992e610c85",
-  "localDoCaso": "Local onde ocorreu o caso"
+  "localDoCaso": "Local onde ocorreu o caso",
+  "localizacao": {
+    "coordenadas": [-46.6333, -23.5505],
+    "endereco": "Rua das Flores, 123, São Paulo, SP",
+    "complemento": "Próximo ao hospital",
+    "referencia": "Em frente à praça central"
+  }
 }
 ```
 
@@ -187,6 +193,8 @@ Authorization: Bearer <token>
 - `tipo` deve ser um dos seguintes valores: "acidente", "identificação de vítima", "exame criminal", "exumação", "violência doméstica", "avaliação de idade", "avaliação de lesões", "avaliação de danos corporais"
 - `status` deve ser um dos seguintes valores: "em andamento", "finalizado", "arquivado"
 - `peritoResponsavel` deve ser o ID de um usuário com role "perito"
+- `localizacao` é opcional e contém informações geográficas do caso
+- `coordenadas` devem estar no formato [longitude, latitude] com valores válidos
 
 **Resposta de Sucesso (201):**
 ```json
@@ -201,6 +209,13 @@ Authorization: Bearer <token>
     "status": "em andamento",
     "peritoResponsavel": "60d21b4667d0d8992e610c85",
     "localDoCaso": "Local onde ocorreu o caso",
+    "localizacao": {
+      "tipo": "Point",
+      "coordenadas": [-46.6333, -23.5505],
+      "endereco": "Rua das Flores, 123, São Paulo, SP",
+      "complemento": "Próximo ao hospital",
+      "referencia": "Em frente à praça central"
+    },
     "criadoPor": "60d21b4667d0d8992e610c85",
     "createdAt": "2023-01-01T00:00:00.000Z",
     "updatedAt": "2023-01-01T00:00:00.000Z"
@@ -227,11 +242,58 @@ Authorization: Bearer <token>
       "email": "perito@exemplo.com"
     },
     "localDoCaso": "Local onde ocorreu o caso",
+    "localizacao": {
+      "tipo": "Point",
+      "coordenadas": [-46.6333, -23.5505],
+      "endereco": "Rua das Flores, 123, São Paulo, SP",
+      "complemento": "Próximo ao hospital",
+      "referencia": "Em frente à praça central"
+    },
     "criadoPor": "60d21b4667d0d8992e610c85",
     "createdAt": "2023-01-01T00:00:00.000Z",
     "updatedAt": "2023-01-01T00:00:00.000Z"
   }
 ]
+```
+
+### Buscar Casos por Proximidade Geográfica
+**Endpoint:** `GET /api/casos/nearby`
+
+**Parâmetros de Query:**
+- `longitude`: Longitude da posição de referência (obrigatório)
+- `latitude`: Latitude da posição de referência (obrigatório)
+- `distanceKm`: Distância máxima em quilômetros (opcional, padrão: 10)
+
+**Exemplo:** `GET /api/casos/nearby?longitude=-46.6333&latitude=-23.5505&distanceKm=5`
+
+**Resposta de Sucesso (200):**
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c86",
+    "titulo": "Caso Próximo",
+    "tipo": "acidente",
+    "descricao": "Caso localizado próximo às coordenadas informadas",
+    "peritoResponsavel": {
+      "_id": "60d21b4667d0d8992e610c85",
+      "name": "Nome do Perito",
+      "email": "perito@exemplo.com"
+    },
+    "localizacao": {
+      "tipo": "Point",
+      "coordenadas": [-46.6340, -23.5510],
+      "endereco": "Rua Próxima, 456",
+      "referencia": "Próximo ao local de referência"
+    }
+  }
+]
+```
+
+**Resposta de Erro (400):**
+```json
+{
+  "message": "Longitude e latitude são obrigatórios para busca por localização."
+}
 ```
 
 ### Buscar Caso por ID
@@ -252,6 +314,13 @@ Authorization: Bearer <token>
     "email": "perito@exemplo.com"
   },
   "localDoCaso": "Local onde ocorreu o caso",
+  "localizacao": {
+    "tipo": "Point",
+    "coordenadas": [-46.6333, -23.5505],
+    "endereco": "Rua das Flores, 123, São Paulo, SP",
+    "complemento": "Próximo ao hospital",
+    "referencia": "Em frente à praça central"
+  },
   "criadoPor": "60d21b4667d0d8992e610c85",
   "createdAt": "2023-01-01T00:00:00.000Z",
   "updatedAt": "2023-01-01T00:00:00.000Z"
@@ -270,12 +339,19 @@ Authorization: Bearer <token>
   "data": "2023-02-01T00:00:00.000Z",
   "status": "finalizado",
   "peritoResponsavel": "60d21b4667d0d8992e610c87",
-  "localDoCaso": "Novo local"
+  "localDoCaso": "Novo local",
+  "localizacao": {
+    "coordenadas": [-46.6500, -23.5600],
+    "endereco": "Nova Rua, 789",
+    "complemento": "Novo complemento",
+    "referencia": "Nova referência"
+  }
 }
 ```
 
 **Observações:**
 - Todos os campos são opcionais
+- Coordenadas devem ser válidas: longitude entre -180 e 180, latitude entre -90 e 90
 
 **Resposta de Sucesso (200):**
 ```json
@@ -294,6 +370,13 @@ Authorization: Bearer <token>
       "email": "outro.perito@exemplo.com"
     },
     "localDoCaso": "Novo local",
+    "localizacao": {
+      "tipo": "Point",
+      "coordenadas": [-46.6500, -23.5600],
+      "endereco": "Nova Rua, 789",
+      "complemento": "Novo complemento",
+      "referencia": "Nova referência"
+    },
     "criadoPor": "60d21b4667d0d8992e610c85",
     "createdAt": "2023-01-01T00:00:00.000Z",
     "updatedAt": "2023-02-01T00:00:00.000Z"
@@ -316,6 +399,8 @@ Authorization: Bearer <token>
 ### Criar Evidência
 **Endpoint:** `POST /api/evidencias`
 
+**Restrição:** Usuários autenticados podem criar evidências.
+
 **Corpo da Requisição:**
 Deve ser enviado como `multipart/form-data` para permitir o upload de arquivo.
 
@@ -329,8 +414,10 @@ arquivo: [ARQUIVO BINÁRIO]
 ```
 
 **Observações:**
-- O campo `arquivo` deve conter um arquivo de imagem ou documento
+- O campo `arquivo` deve conter um arquivo de imagem ou documento (obrigatório)
+- O campo `dataColeta` é obrigatório
 - O tipo de arquivo será determinado automaticamente com base no MIME type
+- O perfil do usuário será formatado automaticamente para match do enum
 
 **Resposta de Sucesso (201):**
 ```json
@@ -355,11 +442,20 @@ arquivo: [ARQUIVO BINÁRIO]
 }
 ```
 
+**Resposta de Erro (400):**
+```json
+{
+  "message": "Arquivo da evidência é obrigatório."
+}
+```
+
 ### Listar Evidências por Caso
 **Endpoint:** `GET /api/evidencias`
 
+**Restrição:** Apenas usuários com role "admin", "perito" ou "assistente" podem listar evidências.
+
 **Parâmetros de Query:**
-- `casoId`: ID do caso para o qual se deseja listar as evidências
+- `casoId`: ID do caso para o qual se deseja listar as evidências (obrigatório)
 
 **Exemplo:** `GET /api/evidencias?casoId=60d21b4667d0d8992e610c86`
 
@@ -385,8 +481,17 @@ arquivo: [ARQUIVO BINÁRIO]
 ]
 ```
 
+**Resposta de Erro (400):**
+```json
+{
+  "message": "ID do caso não informado."
+}
+```
+
 ### Editar Evidência
 **Endpoint:** `PUT /api/evidencias/:id`
+
+**Restrição:** Apenas usuários com role "admin", "perito" ou "assistente" podem editar evidências.
 
 **Corpo da Requisição:**
 ```json
@@ -422,6 +527,13 @@ arquivo: [ARQUIVO BINÁRIO]
       "perfil": "Perito"
     }
   }
+}
+```
+
+**Resposta de Erro (404):**
+```json
+{
+  "message": "Evidência não encontrada."
 }
 ```
 
@@ -490,7 +602,9 @@ arquivo: [ARQUIVO BINÁRIO]
   "corEtnia": "branca",
   "odontograma": {
     "arcadaSuperior": [],
-    "arcadaInferior": []
+    "arcadaInferior": [],
+    "observacoesGerais": "Observações gerais do exame",
+    "metodologia": "Metodologia utilizada no exame"
   },
   "regioesAnatomicas": [
     {
@@ -508,9 +622,11 @@ arquivo: [ARQUIVO BINÁRIO]
 
 **Observações:**
 - `nic`, `nome`, `genero`, `idade`, `documento` e `caso` são obrigatórios
+- `nic` deve ser único no sistema
 - `genero` deve ser: "masculino", "feminino" ou "outro"
 - `documento.tipo` deve ser: "rg", "cpf", "passaporte" ou "outro"
 - `corEtnia` deve ser: "branca", "preta", "parda", "amarela" ou "indígena"
+- Se `odontograma` não for fornecido, será inicializado automaticamente com todos os dentes
 
 **Resposta de Sucesso (201):**
 ```json
@@ -537,8 +653,25 @@ arquivo: [ARQUIVO BINÁRIO]
     },
     "corEtnia": "branca",
     "odontograma": {
-      "arcadaSuperior": [],
-      "arcadaInferior": []
+      "arcadaSuperior": [
+        {
+          "numero": "18",
+          "presente": true,
+          "condicoes": [],
+          "observacoes": ""
+        }
+      ],
+      "arcadaInferior": [
+        {
+          "numero": "48",
+          "presente": true,
+          "condicoes": [],
+          "observacoes": ""
+        }
+      ],
+      "observacoesGerais": "",
+      "metodologia": "",
+      "dataExame": "2023-01-01T00:00:00.000Z"
     },
     "regioesAnatomicas": [
       {
@@ -559,6 +692,13 @@ arquivo: [ARQUIVO BINÁRIO]
 }
 ```
 
+**Resposta de Erro (400):**
+```json
+{
+  "message": "NIC já existe no sistema."
+}
+```
+
 ### Listar Vítimas por Caso
 **Endpoint:** `GET /api/vitimas/caso/:casoId`
 
@@ -571,27 +711,15 @@ arquivo: [ARQUIVO BINÁRIO]
     "nome": "João Silva",
     "genero": "masculino",
     "idade": 35,
-    "documento": {
-      "tipo": "cpf",
-      "numero": "123.456.789-00"
+    "caso": {
+      "_id": "60d21b4667d0d8992e610c86",
+      "titulo": "Título do Caso",
+      "status": "em andamento"
     },
-    "endereco": {
-      "logradouro": "Rua das Flores, 123",
-      "numero": "123",
-      "complemento": "Apt 45",
-      "bairro": "Centro",
-      "cidade": "São Paulo",
-      "estado": "SP",
-      "cep": "01234-567"
+    "criadoPor": {
+      "_id": "60d21b4667d0d8992e610c85",
+      "name": "Nome do Usuário"
     },
-    "corEtnia": "branca",
-    "odontograma": {
-      "arcadaSuperior": [],
-      "arcadaInferior": []
-    },
-    "regioesAnatomicas": [],
-    "caso": "60d21b4667d0d8992e610c86",
-    "criadoPor": "60d21b4667d0d8992e610c85",
     "createdAt": "2023-01-01T00:00:00.000Z",
     "updatedAt": "2023-01-01T00:00:00.000Z"
   }
@@ -624,12 +752,38 @@ arquivo: [ARQUIVO BINÁRIO]
   },
   "corEtnia": "branca",
   "odontograma": {
-    "arcadaSuperior": [],
-    "arcadaInferior": []
+    "arcadaSuperior": [
+      {
+        "numero": "18",
+        "presente": true,
+        "condicoes": [
+          {
+            "tipo": "cariado",
+            "faces": ["oclusal"],
+            "descricao": "Cárie pequena",
+            "dataRegistro": "2023-01-01T00:00:00.000Z",
+            "registradoPor": "60d21b4667d0d8992e610c85"
+          }
+        ],
+        "observacoes": "Dente com cárie oclusal",
+        "ultimaAtualizacao": "2023-01-01T00:00:00.000Z"
+      }
+    ],
+    "arcadaInferior": [],
+    "observacoesGerais": "Exame realizado com boa visibilidade",
+    "metodologia": "Exame visual e radiográfico",
+    "dataExame": "2023-01-01T00:00:00.000Z"
   },
   "regioesAnatomicas": [],
-  "caso": "60d21b4667d0d8992e610c86",
-  "criadoPor": "60d21b4667d0d8992e610c85",
+  "caso": {
+    "_id": "60d21b4667d0d8992e610c86",
+    "titulo": "Título do Caso",
+    "status": "em andamento"
+  },
+  "criadoPor": {
+    "_id": "60d21b4667d0d8992e610c85",
+    "name": "Nome do Usuário"
+  },
   "createdAt": "2023-01-01T00:00:00.000Z",
   "updatedAt": "2023-01-01T00:00:00.000Z"
 }
@@ -659,6 +813,7 @@ arquivo: [ARQUIVO BINÁRIO]
 **Observações:**
 - Todos os campos são opcionais
 - Apenas os campos enviados serão atualizados
+- Se o NIC for alterado, será verificado se já existe no sistema
 
 **Resposta de Sucesso (200):**
 ```json
@@ -682,14 +837,14 @@ arquivo: [ARQUIVO BINÁRIO]
       "estado": "SP",
       "cep": "01234-890"
     },
-    "corEtnia": "branca",
-    "odontograma": {
-      "arcadaSuperior": [],
-      "arcadaInferior": []
+    "caso": {
+      "_id": "60d21b4667d0d8992e610c86",
+      "titulo": "Título do Caso"
     },
-    "regioesAnatomicas": [],
-    "caso": "60d21b4667d0d8992e610c86",
-    "criadoPor": "60d21b4667d0d8992e610c85",
+    "criadoPor": {
+      "_id": "60d21b4667d0d8992e610c85",
+      "name": "Nome do Usuário"
+    },
     "createdAt": "2023-01-01T00:00:00.000Z",
     "updatedAt": "2023-01-01T00:00:00.000Z"
   }
@@ -708,7 +863,44 @@ arquivo: [ARQUIVO BINÁRIO]
 }
 ```
 
-### Atualizar Odontograma
+## Odontograma
+
+### Obter Odontograma Completo
+**Endpoint:** `GET /api/vitimas/:id/odontograma`
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "arcadaSuperior": [
+    {
+      "numero": "18",
+      "presente": true,
+      "condicoes": [
+        {
+          "_id": "60d21b4667d0d8992e610c91",
+          "tipo": "cariado",
+          "faces": ["oclusal"],
+          "descricao": "Cárie pequena",
+          "dataRegistro": "2023-01-01T00:00:00.000Z",
+          "registradoPor": "60d21b4667d0d8992e610c85"
+        }
+      ],
+      "observacoes": "Dente com cárie oclusal",
+      "coordenadas": {
+        "x": 100,
+        "y": 150
+      },
+      "ultimaAtualizacao": "2023-01-01T00:00:00.000Z"
+    }
+  ],
+  "arcadaInferior": [],
+  "observacoesGerais": "Exame realizado com boa visibilidade",
+  "metodologia": "Exame visual e radiográfico",
+  "dataExame": "2023-01-01T00:00:00.000Z"
+}
+```
+
+### Atualizar Odontograma Completo
 **Endpoint:** `PUT /api/vitimas/:id/odontograma`
 
 **Restrição:** Apenas usuários com role "admin" ou "perito" podem atualizar odontogramas.
@@ -719,23 +911,21 @@ arquivo: [ARQUIVO BINÁRIO]
   "odontograma": {
     "arcadaSuperior": [
       {
-        "dente": "18",
-        "estado": "presente",
-        "observacoes": "Cárie oclusal"
-      },
-      {
-        "dente": "17",
-        "estado": "ausente",
-        "observacoes": "Extraído"
+        "numero": "18",
+        "presente": true,
+        "condicoes": [
+          {
+            "tipo": "restaurado",
+            "faces": ["oclusal"],
+            "descricao": "Restauração em resina"
+          }
+        ],
+        "observacoes": "Dente restaurado"
       }
     ],
-    "arcadaInferior": [
-      {
-        "dente": "48",
-        "estado": "presente",
-        "observacoes": "Restauração amalgama"
-      }
-    ]
+    "arcadaInferior": [],
+    "observacoesGerais": "Exame completo realizado",
+    "metodologia": "Exame visual, tátil e radiográfico"
   }
 }
 ```
@@ -751,24 +941,155 @@ arquivo: [ARQUIVO BINÁRIO]
     "odontograma": {
       "arcadaSuperior": [
         {
-          "dente": "18",
-          "estado": "presente",
-          "observacoes": "Cárie oclusal"
-        },
-        {
-          "dente": "17",
-          "estado": "ausente",
-          "observacoes": "Extraído"
+          "numero": "18",
+          "presente": true,
+          "condicoes": [
+            {
+              "_id": "60d21b4667d0d8992e610c92",
+              "tipo": "restaurado",
+              "faces": ["oclusal"],
+              "descricao": "Restauração em resina",
+              "dataRegistro": "2023-01-01T00:00:00.000Z",
+              "registradoPor": "60d21b4667d0d8992e610c85"
+            }
+          ],
+          "observacoes": "Dente restaurado",
+          "ultimaAtualizacao": "2023-01-01T00:00:00.000Z"
         }
       ],
-      "arcadaInferior": [
-        {
-          "dente": "48",
-          "estado": "presente",
-          "observacoes": "Restauração amalgama"
-        }
-      ]
+      "arcadaInferior": [],
+      "observacoesGerais": "Exame completo realizado",
+      "metodologia": "Exame visual, tátil e radiográfico",
+      "dataExame": "2023-01-01T00:00:00.000Z"
     }
+  }
+}
+```
+
+### Atualizar Dente Específico
+**Endpoint:** `PUT /api/vitimas/:id/odontograma/dente/:numeroDente`
+
+**Restrição:** Apenas usuários com role "admin" ou "perito" podem atualizar dentes.
+
+**Corpo da Requisição:**
+```json
+{
+  "condicao": {
+    "tipo": "fraturado",
+    "faces": ["incisal"],
+    "descricao": "Fratura da borda incisal"
+  },
+  "observacoes": "Fratura recente",
+  "presente": true
+}
+```
+
+**Observações:**
+- `numeroDente` deve ser um número de dente válido (ex: "11", "21", "31", "41")
+- Tipos de condição válidos: "hígido", "cariado", "restaurado", "fraturado", "ausente", "implante", "protese", "canal", "coroa", "ponte", "aparelho", "outro"
+- Faces válidas: "mesial", "distal", "oclusal", "vestibular", "lingual", "incisal", "cervical"
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "message": "Dente atualizado com sucesso",
+  "dente": {
+    "numero": "11",
+    "presente": true,
+    "condicoes": [
+      {
+        "_id": "60d21b4667d0d8992e610c93",
+        "tipo": "fraturado",
+        "faces": ["incisal"],
+        "descricao": "Fratura da borda incisal",
+        "dataRegistro": "2023-01-01T00:00:00.000Z",
+        "registradoPor": "60d21b4667d0d8992e610c85"
+      }
+    ],
+    "observacoes": "Fratura recente",
+    "ultimaAtualizacao": "2023-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### Adicionar Condição a um Dente
+**Endpoint:** `POST /api/vitimas/:id/odontograma/dente/:numeroDente/condicao`
+
+**Restrição:** Apenas usuários com role "admin" ou "perito" podem adicionar condições.
+
+**Corpo da Requisição:**
+```json
+{
+  "tipo": "cariado",
+  "faces": ["oclusal", "mesial"],
+  "descricao": "Cárie extensa envolvendo duas faces"
+}
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "message": "Condição adicionada com sucesso",
+  "dente": {
+    "numero": "16",
+    "presente": true,
+    "condicoes": [
+      {
+        "_id": "60d21b4667d0d8992e610c94",
+        "tipo": "cariado",
+        "faces": ["oclusal", "mesial"],
+        "descricao": "Cárie extensa envolvendo duas faces",
+        "dataRegistro": "2023-01-01T00:00:00.000Z",
+        "registradoPor": "60d21b4667d0d8992e610c85"
+      }
+    ],
+    "observacoes": "",
+    "ultimaAtualizacao": "2023-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### Remover Condição de um Dente
+**Endpoint:** `DELETE /api/vitimas/:id/odontograma/dente/:numeroDente/condicao/:condicaoId`
+
+**Restrição:** Apenas usuários com role "admin" ou "perito" podem remover condições.
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "message": "Condição removida com sucesso",
+  "dente": {
+    "numero": "16",
+    "presente": true,
+    "condicoes": [],
+    "observacoes": "",
+    "ultimaAtualizacao": "2023-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### Atualizar Observações de um Dente
+**Endpoint:** `PUT /api/vitimas/:id/odontograma/dente/:numeroDente/observacoes`
+
+**Restrição:** Apenas usuários com role "admin" ou "perito" podem atualizar observações.
+
+**Corpo da Requisição:**
+```json
+{
+  "observacoes": "Dente com mobilidade grau II"
+}
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "message": "Observações atualizadas com sucesso",
+  "dente": {
+    "numero": "21",
+    "presente": true,
+    "condicoes": [],
+    "observacoes": "Dente com mobilidade grau II",
+    "ultimaAtualizacao": "2023-01-01T00:00:00.000Z"
   }
 }
 ```
@@ -982,7 +1303,16 @@ Content-Type: application/pdf
   status: String,        // Status do caso: 'em andamento', 'finalizado', 'arquivado' (padrão: 'em andamento')
   peritoResponsavel: ObjectId, // Referência ao usuário responsável (obrigatório)
   localDoCaso: String,   // Local onde ocorreu o caso (obrigatório)
+  localizacao: {         // Localização geográfica do caso (opcional)
+    tipo: String,        // Tipo GeoJSON: 'Point' (padrão)
+    coordenadas: [Number], // [longitude, latitude] (obrigatório se localizacao fornecida)
+    endereco: String,    // Endereço textual (opcional)
+    complemento: String, // Complemento do endereço (opcional)
+    referencia: String   // Referência para localização (opcional)
+  },
   criadoPor: ObjectId,   // Referência ao usuário que criou o caso (obrigatório)
+  ultimaAtualizacao: Date, // Data da última atualização (automático)
+  atualizadoPor: ObjectId, // Referência ao usuário que fez a última atualização (opcional)
   createdAt: Date,       // Data de criação (automático)
   updatedAt: Date        // Data de atualização (automático)
 }
@@ -1028,9 +1358,35 @@ Content-Type: application/pdf
     cep: String          // CEP
   },
   corEtnia: String,      // Cor/Etnia: 'branca', 'preta', 'parda', 'amarela', 'indígena'
-  odontograma: {         // Informações odontológicas
-    arcadaSuperior: Array, // Dentes da arcada superior
-    arcadaInferior: Array  // Dentes da arcada inferior
+  odontograma: {         // Informações odontológicas detalhadas
+    arcadaSuperior: [{   // Dentes da arcada superior
+      numero: String,    // Número do dente (ex: "18", "17", "16")
+      presente: Boolean, // Se o dente está presente (padrão: true)
+      condicoes: [{      // Condições dentárias
+        tipo: String,    // Tipo: 'hígido', 'cariado', 'restaurado', 'fraturado', 'ausente', 'implante', 'protese', 'canal', 'coroa', 'ponte', 'aparelho', 'outro'
+        faces: [String], // Faces envolvidas: 'mesial', 'distal', 'oclusal', 'vestibular', 'lingual', 'incisal', 'cervical'
+        descricao: String, // Descrição da condição
+        dataRegistro: Date, // Data do registro (automático)
+        registradoPor: ObjectId // Usuário que registrou
+      }],
+      observacoes: String, // Observações específicas do dente
+      coordenadas: {     // Coordenadas para posicionamento visual
+        x: Number,
+        y: Number
+      },
+      ultimaAtualizacao: Date // Data da última atualização
+    }],
+    arcadaInferior: [{   // Dentes da arcada inferior (mesma estrutura)
+      numero: String,
+      presente: Boolean,
+      condicoes: Array,
+      observacoes: String,
+      coordenadas: Object,
+      ultimaAtualizacao: Date
+    }],
+    observacoesGerais: String, // Observações gerais do exame
+    metodologia: String,       // Metodologia utilizada no exame
+    dataExame: Date           // Data do exame (padrão: data atual)
   },
   regioesAnatomicas: [{  // Regiões anatômicas examinadas
     regiao: {
@@ -1102,12 +1458,33 @@ Content-Type: application/pdf
 
 4. **Relatórios em PDF**: A exportação de relatórios em PDF retorna um arquivo binário, não um JSON.
 
-5. **Histórico Automático**: Algumas ações (como criar um relatório final ou cadastrar uma vítima) geram entradas automáticas no histórico.
+5. **Histórico Automático**: Algumas ações (como criar um relatório final, cadastrar uma vítima, ou atualizar odontograma) geram entradas automáticas no histórico.
 
 6. **Status do Caso**: Criar um relatório final altera automaticamente o status do caso para "Finalizado".
 
 7. **NIC Único**: O NIC (Número de Identificação Cadavérica) deve ser único para cada vítima cadastrada no sistema.
 
-8. **Odontograma**: As informações odontológicas são estruturadas em arcadas superior e inferior, permitindo registro detalhado do estado dos dentes.
+8. **Odontograma Avançado**: 
+   - As informações odontológicas são estruturadas em arcadas superior e inferior
+   - Cada dente possui número, estado de presença, condições específicas e observações
+   - Suporte a múltiplas condições por dente (cárie, restauração, fratura, etc.)
+   - Cada condição pode afetar faces específicas do dente
+   - Controle de versioning com data de última atualização por dente
 
-9. **Regiões Anatômicas**: Permite o registro de exames e achados em diferentes regiões anatômicas da vítima.
+9. **Condições Dentárias**: Tipos disponíveis são "hígido", "cariado", "restaurado", "fraturado", "ausente", "implante", "protese", "canal", "coroa", "ponte", "aparelho", "outro".
+
+10. **Faces Dentárias**: Faces disponíveis são "mesial", "distal", "oclusal", "vestibular", "lingual", "incisal", "cervical".
+
+11. **Regiões Anatômicas**: Permite o registro de exames e achados em diferentes regiões anatômicas da vítima.
+
+12. **Geolocalização**: Os casos podem incluir informações geográficas precisas usando coordenadas GeoJSON, permitindo busca por proximidade e mapeamento de casos.
+
+13. **Busca por Proximidade**: A rota `/nearby` permite encontrar casos próximos a uma localização específica, útil para análise de padrões geográficos e logística de equipes.
+
+14. **Validação de Coordenadas**: As coordenadas são validadas automaticamente: longitude entre -180 e 180, latitude entre -90 a 90.
+
+15. **Inicialização Automática**: Se o odontograma não for fornecido ao criar uma vítima, o sistema inicializa automaticamente com todos os dentes padrão.
+
+16. **Controle de Permissões por Caso**: O acesso às vítimas é controlado através das permissões do caso associado, garantindo segurança dos dados.
+
+17. **Rastreabilidade**: Todas as operações em dentes individuais são registradas com usuário responsável e data/hora.
