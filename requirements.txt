@@ -1,7 +1,0 @@
-cat > requirements.txt << 'EOF'
-scikit-learn==1.6.1
-numpy==2.2.4
-pandas
-xgboost
-pymongo
-EOF
