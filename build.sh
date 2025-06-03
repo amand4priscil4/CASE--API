@@ -1,16 +1,16 @@
+cat > build.sh << 'EOF'
 #!/bin/bash
 
 echo "🐍 Instalando Python e dependências..."
 
-# Instalar Python e pip
 apt-get update
 apt-get install -y python3 python3-pip
 
-# Instalar dependências Python do ML
-pip3 install pandas==2.0.3 scikit-learn==1.3.0 xgboost==1.7.6 pymongo==4.5.0 numpy==1.24.3
+# Usar as MESMAS versões do Codespace
+pip3 install scikit-learn==1.6.1 numpy==2.2.4 pandas xgboost pymongo
 
 echo "📦 Instalando dependências Node.js..."
-# Instalar dependências Node
 yarn install
 
 echo "✅ Build concluído!"
+EOF
