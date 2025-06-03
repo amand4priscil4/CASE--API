@@ -47,6 +47,7 @@ const relatorioRoutes = require('./routes/relatorio.routes');
 const historicoRoutes = require('./routes/historico.routes'); 
 const vitimaRoutes = require('./routes/vitima.routes'); 
 const laudoOdontologicoRoutes = require('./routes/laudoOdontologico.routes');
+const mlRoutes = require('./routes/ml.routes');
 
 // Configuração das rotas
 app.use('/api', authRoutes); // /api/login
@@ -59,6 +60,7 @@ app.use('/api/relatorios', relatorioRoutes); // /api/relatorios
 app.use('/api/historico', historicoRoutes); // /api/historico
 app.use('/api/vitimas', vitimaRoutes); // /api/vitimas
 app.use('/api/laudos-odontologicos', laudoOdontologicoRoutes);
+app.use('/api/ml', mlRoutes);
 
 // Rota de teste
 app.get('/', (req, res) => {

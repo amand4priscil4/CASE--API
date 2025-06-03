@@ -1,6 +1,6 @@
 const RelatorioFinal = require('../models/relatorio.model');
 const PDFDocument = require('pdfkit');
-const Case = require('../models/case.model'); // ✅ CORRIGIDO: Case, não Caso
+const Case = require('../models/case.model');
 const User = require('../models/user.model');
 const Historico = require('../models/historico.model');
 
@@ -9,9 +9,6 @@ exports.criarRelatorioFinal = async (req, res) => {
     const { caseId } = req.params;
     const { titulo, texto } = req.body;
     const userId = req.user.id;
-
-    // ✅ CORRIGIDO: Case.findById em vez de Caso.findById
-    // ✅ CORRIGIDO: populate('peritoResponsavel') em vez de populate('responsavel')
     const caso = await Case.findById(caseId).populate('peritoResponsavel');
 
     if (!caso) return res.status(404).json({ error: 'Caso não encontrado' });
