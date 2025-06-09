@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const app = express();
+const { swaggerUi, specs } = require('../swagger'); // ou './swagger' se estiver dentro de src
+
 
 // Configuração do MongoDB
 const uri = "mongodb+srv://amandapriscilaa15:S99rV4gzO6u9MYaw@cluster0.sd5eblw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
@@ -32,6 +34,9 @@ app.use(
 
 // Middleware para parsing de JSON
 app.use(express.json());
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 
 // Importa a função createAdmin para executá-la ao iniciar
 require('./create/createAdmin');
