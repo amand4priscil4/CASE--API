@@ -38,4 +38,7 @@ router.post(
   evidenceController.createEvidence
 );
 
+// GET /api/evidencias/:id - Buscar evidência por ID
+router.get('/:id', auth, evidenceController.getEvidenceById);
+
 module.exports = router;
