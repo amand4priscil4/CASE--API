@@ -1,409 +1,413 @@
-const RelatorioFinal = require("../models/relatorio.model");
-const PDFDocument = require("pdfkit");
-const Case = require("../models/case.model");
-const user = require("../models/user.model");
-const Historico = require("../models/historico.model");
-const Laudo = require("../models/laudo.model");
-const Evidencia = require("../models/evidencia.model");
+// controllers/ia.controller.js
 const axios = require("axios");
+const Case = require("../models/case.model");
+const Evidencia = require("../models/evidencia.model");
+const Vitima = require("../models/vitima.model");
+const Laudo = require("../models/laudo.model");
+const Historico = require("../models/historico.model");
 
-// Precisamos ainda botar nosso generate API IA Configuração da API Gemini
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+// Configuração da API Gemini
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyDK9SX03f1cnzWFPy0em8b3xTsFOoWLPNU";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`;
 
-// Função auxiliar para gerar relatório final com IA
-const gerarRelatorioComIA = async (caso, laudos, evidencias) => {
+// Função auxiliar para fazer chamada à API Gemini
+const chamarGeminiAPI = async (promptText, maxTokens = 2048) => {
   try {
-    let promptText = `Por favor, gere um relatório final completo e executivo para o seguinte caso criminal/pericial:\n\n`;
-
-    // Informações do caso
-    promptText += `INFORMAÇÕES DO CASO:\n`;
-    promptText += `ID: ${caso._id}\n`;
-    promptText += `Título: ${caso.titulo}\n`;
-    promptText += `Descrição: ${caso.descricao || "Não informado"}\n`;
-    promptText += `Status Atual: ${caso.status}\n`;
-    promptText += `Data de Abertura: ${new Date(caso.createdAt).toLocaleString(
-      "pt-BR"
-    )}\n`;
-    promptText += `Responsável: ${
-      caso.peritoResponsavel?.name || "Não informado"
-    }\n\n`;
-
-    // Evidências
-    if (evidencias && evidencias.length > 0) {
-      promptText += `EVIDÊNCIAS COLETADAS (${evidencias.length} total):\n`;
-      evidencias.forEach((ev, index) => {
-        promptText += `${index + 1}. ${ev.titulo}\n`;
-        promptText += `   Tipo: ${ev.tipo || "Não especificado"}\n`;
-        promptText += `   Descrição: ${ev.descricao}\n`;
-        promptText += `   Status: ${ev.status}\n`;
-        promptText += `   Data: ${new Date(ev.createdAt).toLocaleString(
-          "pt-BR"
-        )}\n\n`;
-      });
-    }
-
-    // Laudos existentes
-    if (laudos && laudos.length > 0) {
-      promptText += `LAUDOS PERICIAIS EXISTENTES (${laudos.length} total):\n`;
-      laudos.forEach((laudo, index) => {
-        promptText += `${index + 1}. Autor: ${
-          laudo.autor?.name || "Não informado"
-        }\n`;
-        promptText += `   Data: ${new Date(laudo.criadoEm).toLocaleString(
-          "pt-BR"
-        )}\n`;
-        promptText += `   Resumo do Conteúdo: ${laudo.texto.substring(
-          0,
-          200
-        )}...\n\n`;
-      });
-    }
-// SE PRECISO AJEITAR O PROMPT!
-    promptText += `INSTRUÇÕES PARA O RELATÓRIO FINAL:\n`;
-    promptText += `- Faça um resumo executivo do caso inteiro\n`;
-    promptText += `- Consolide todas as evidências e laudos em uma análise única\n`;
-    promptText += `- Apresente conclusões definitivas baseadas em todos os dados\n`;
-    promptText += `- Identifique pontos-chave e achados principais\n`;
-    promptText += `- Sugira recomendações finais ou encaminhamentos\n`;
-    promptText += `- Use linguagem formal adequada para um relatório oficial\n`;
-    promptText += `- Estruture em: Resumo Executivo, Análise Consolidada, Conclusões Finais, Recomendações\n\n`;
-    promptText += `Este é um relatório de fechamento do caso, então seja definitivo nas conclusões.`;
-
-    console.log(
-      "Enviando prompt para IA (relatório):",
-      promptText.substring(0, 200) + "..."
-    );
-
-    const geminiResponse = await axios.post(GEMINI_API_URL, {
+    const response = await axios.post(GEMINI_API_URL, {
       contents: [{ parts: [{ text: promptText }] }],
       generationConfig: {
         temperature: 0.3,
         topK: 1,
         topP: 1,
-        maxOutputTokens: 6144, // Mais tokens para relatórios completos
+        maxOutputTokens: maxTokens,
       },
     });
 
     if (
-      geminiResponse.data.candidates &&
-      geminiResponse.data.candidates.length > 0 &&
-      geminiResponse.data.candidates[0].content &&
-      geminiResponse.data.candidates[0].content.parts &&
-      geminiResponse.data.candidates[0].content.parts.length > 0
+      response.data.candidates &&
+      response.data.candidates.length > 0 &&
+      response.data.candidates[0].content &&
+      response.data.candidates[0].content.parts &&
+      response.data.candidates[0].content.parts.length > 0
     ) {
-      return geminiResponse.data.candidates[0].content.parts[0].text;
+      return response.data.candidates[0].content.parts[0].text;
     } else {
-      console.error(
-        "Resposta da API Gemini em formato inesperado:",
-        geminiResponse.data
-      );
-      throw new Error("Resposta da API Gemini não contém o conteúdo esperado.");
+      throw new Error("Resposta da API Gemini em formato inesperado");
     }
   } catch (error) {
-    console.error("Erro ao gerar relatório com IA:", error.message);
-    throw new Error(
-      `Falha na geração automática do relatório: ${error.message}`
-    );
+    console.error("Erro na API Gemini:", error.message);
+    throw new Error(`Falha na geração com IA: ${error.message}`);
   }
 };
 
-// Criar relatório final (versão original mantida)
-exports.criarRelatorioFinal = async (req, res) => {
+// 1. Gerar Laudo de Evidência com IA
+exports.gerarLaudoEvidencia = async (req, res) => {
   try {
     const { caseId } = req.params;
-    const { titulo, texto } = req.body;
+    const { evidenciaSelecionada } = req.body;
     const userId = req.user.id;
-    const caso = await Case.findById(caseId).populate("peritoResponsavel");
 
+    // Buscar caso
+    const caso = await Case.findById(caseId).populate("peritoResponsavel");
     if (!caso) return res.status(404).json({ error: "Caso não encontrado" });
 
-    // Geração do cabeçalho automático
-    const cabecalho = `
-Relatório Final
+    // Buscar evidência específica
+    const evidencia = await Evidencia.findById(evidenciaSelecionada);
+    if (!evidencia) return res.status(404).json({ error: "Evidência não encontrada" });
 
-Caso: ${caso.titulo}
-Número do Caso: ${caso._id}
-Responsável: ${caso.peritoResponsavel?.name || "Não informado"}
-Data de Abertura: ${caso.createdAt?.toLocaleDateString("pt-BR") || "N/A"}
-Status: ${caso.status}
+    // Montar prompt específico para laudo de evidência
+    let promptText = `Gere um laudo pericial técnico para a seguinte evidência:\n\n`;
+    
+    promptText += `DADOS DO CASO:\n`;
+    promptText += `Caso: ${caso.titulo}\n`;
+    promptText += `Número: ${caso._id}\n`;
+    promptText += `Descrição: ${caso.descricao || "Não informado"}\n\n`;
+    
+    promptText += `EVIDÊNCIA ANALISADA:\n`;
+    promptText += `Título: ${evidencia.titulo}\n`;
+    promptText += `Tipo: ${evidencia.tipo}\n`;
+    promptText += `Descrição: ${evidencia.descricao}\n`;
+    promptText += `Status: ${evidencia.status}\n`;
+    promptText += `Local de Coleta: ${evidencia.localColeta || "Não informado"}\n`;
+    promptText += `Data de Coleta: ${new Date(evidencia.createdAt).toLocaleString("pt-BR")}\n\n`;
+    
+    promptText += `INSTRUÇÕES PARA O LAUDO:\n`;
+    promptText += `- Estruture em: Objetivo, Metodologia, Resultados, Conclusões\n`;
+    promptText += `- Use linguagem técnica pericial adequada\n`;
+    promptText += `- Seja específico sobre os achados técnicos\n`;
+    promptText += `- Inclua recomendações se necessário\n`;
+    promptText += `- Mantenha objetividade científica\n`;
+    promptText += `- Formato: texto corrido, aproximadamente 800 palavras`;
 
------------------------------
-`;
+    const textoGerado = await chamarGeminiAPI(promptText, 3072);
 
-    const relatorio = await RelatorioFinal.create({
-      caso: caseId,
-      criadoPor: userId,
-      titulo,
-      texto: cabecalho + "\n" + texto,
-    });
-
-    // Atualiza status do caso para "Finalizado"
-    caso.status = "finalizado";
-    await caso.save();
-
-    // Salva histórico
+    // Registrar no histórico
     await Historico.create({
-      acao: "Relatório final criado",
+      acao: "Laudo de evidência gerado com IA",
       usuario: userId,
       caso: caseId,
-      detalhes: `O usuário criou o relatório final com o título "${titulo}".`,
+      detalhes: `Laudo gerado para evidência "${evidencia.titulo}"`,
     });
 
-    res.status(201).json({
-      message: "Relatório final criado com sucesso e caso fechado.",
-      relatorio,
+    res.status(200).json({
+      message: "Laudo de evidência gerado com sucesso",
+      textoGerado,
+      evidencia: {
+        id: evidencia._id,
+        titulo: evidencia.titulo,
+        tipo: evidencia.tipo
+      }
     });
-  } catch (err) {
-    console.error("[ERRO] Criar relatório final:", err);
-    res.status(500).json({ error: "Erro ao criar relatório final." });
+
+  } catch (error) {
+    console.error("[ERRO] Gerar laudo evidência IA:", error);
+    res.status(500).json({ 
+      error: "Erro ao gerar laudo de evidência",
+      details: error.message 
+    });
   }
 };
 
-// NOVO: Gerar relatório final automaticamente com IA
-exports.generateRelatorioWithIA = async (req, res) => {
+// 2. Gerar Laudo Odontológico com IA
+exports.gerarLaudoOdontologico = async (req, res) => {
+  try {
+    const { caseId } = req.params;
+    const { vitimaSelecionada, tipoConteudo } = req.body; // tipoConteudo: 'observacoes' ou 'parecer'
+    const userId = req.user.id;
+
+    // Buscar caso e vítima
+    const caso = await Case.findById(caseId).populate("peritoResponsavel");
+    if (!caso) return res.status(404).json({ error: "Caso não encontrado" });
+
+    const vitima = await Vitima.findById(vitimaSelecionada);
+    if (!vitima) return res.status(404).json({ error: "Vítima não encontrada" });
+
+    // Prompt específico baseado no tipo de conteúdo
+    let promptText = ``;
+
+    if (tipoConteudo === 'observacoes') {
+      promptText = `Gere observações odontológicas técnicas para o seguinte caso:\n\n`;
+      promptText += `DADOS DA VÍTIMA:\n`;
+      promptText += `Nome: ${vitima.nome}\n`;
+      promptText += `NIC: ${vitima.nic}\n`;
+      promptText += `Idade: ${vitima.idade || "Não informado"}\n`;
+      promptText += `Sexo: ${vitima.sexo || "Não informado"}\n\n`;
+      
+      promptText += `CASO: ${caso.titulo}\n\n`;
+      
+      promptText += `INSTRUÇÕES:\n`;
+      promptText += `- Descreva observações clínicas odontológicas\n`;
+      promptText += `- Inclua aspectos anatômicos relevantes\n`;
+      promptText += `- Mencione condições dentárias e periodontais\n`;
+      promptText += `- Use terminologia odontológica apropriada\n`;
+      promptText += `- Máximo 400 palavras, texto técnico objetivo`;
+      
+    } else if (tipoConteudo === 'parecer') {
+      promptText = `Gere um parecer técnico odontológico conclusivo para:\n\n`;
+      promptText += `VÍTIMA: ${vitima.nome} (NIC: ${vitima.nic})\n`;
+      promptText += `CASO: ${caso.titulo}\n\n`;
+      
+      promptText += `INSTRUÇÕES PARA PARECER:\n`;
+      promptText += `- Apresente conclusões técnicas definitivas\n`;
+      promptText += `- Correlacione achados com o caso\n`;
+      promptText += `- Inclua implicações periciais\n`;
+      promptText += `- Use linguagem formal e conclusiva\n`;
+      promptText += `- Máximo 300 palavras, foco nas conclusões`;
+    }
+
+    const textoGerado = await chamarGeminiAPI(promptText, 2048);
+
+    // Registrar no histórico
+    await Historico.create({
+      acao: `${tipoConteudo === 'observacoes' ? 'Observações' : 'Parecer'} odontológico gerado com IA`,
+      usuario: userId,
+      caso: caseId,
+      detalhes: `Gerado para vítima ${vitima.nome} (${vitima.nic})`,
+    });
+
+    res.status(200).json({
+      message: `${tipoConteudo === 'observacoes' ? 'Observações' : 'Parecer'} gerado com sucesso`,
+      textoGerado,
+      tipoConteudo,
+      vitima: {
+        id: vitima._id,
+        nome: vitima.nome,
+        nic: vitima.nic
+      }
+    });
+
+  } catch (error) {
+    console.error("[ERRO] Gerar laudo odontológico IA:", error);
+    res.status(500).json({ 
+      error: "Erro ao gerar laudo odontológico",
+      details: error.message 
+    });
+  }
+};
+
+// 3. Gerar Relatório Final com IA
+exports.gerarRelatorioFinal = async (req, res) => {
+  try {
+    const { caseId } = req.params;
+    const userId = req.user.id;
+
+    // Buscar dados completos do caso
+    const caso = await Case.findById(caseId).populate("peritoResponsavel");
+    if (!caso) return res.status(404).json({ error: "Caso não encontrado" });
+
+    // Buscar evidências e laudos
+    const evidencias = await Evidencia.find({ caso: caseId }).sort({ createdAt: -1 });
+    const laudos = await Laudo.find({ caso: caseId }).populate("autor", "name").sort({ criadoEm: -1 });
+
+    if (evidencias.length === 0 && laudos.length === 0) {
+      return res.status(400).json({
+        error: "Não há dados suficientes para gerar relatório final"
+      });
+    }
+
+    // Prompt para relatório final
+    let promptText = `Gere um relatório final executivo completo para o seguinte caso pericial:\n\n`;
+    
+    promptText += `INFORMAÇÕES DO CASO:\n`;
+    promptText += `Título: ${caso.titulo}\n`;
+    promptText += `ID: ${caso._id}\n`;
+    promptText += `Descrição: ${caso.descricao || "Não informado"}\n`;
+    promptText += `Status: ${caso.status}\n`;
+    promptText += `Responsável: ${caso.peritoResponsavel?.name || "Não informado"}\n`;
+    promptText += `Data de Abertura: ${new Date(caso.createdAt).toLocaleString("pt-BR")}\n\n`;
+
+    if (evidencias.length > 0) {
+      promptText += `EVIDÊNCIAS COLETADAS (${evidencias.length} total):\n`;
+      evidencias.forEach((ev, index) => {
+        promptText += `${index + 1}. ${ev.titulo} (${ev.tipo})\n`;
+        promptText += `   Descrição: ${ev.descricao}\n`;
+        promptText += `   Status: ${ev.status}\n\n`;
+      });
+    }
+
+    if (laudos.length > 0) {
+      promptText += `LAUDOS PERICIAIS (${laudos.length} total):\n`;
+      laudos.forEach((laudo, index) => {
+        promptText += `${index + 1}. Autor: ${laudo.autor?.name || "Não informado"}\n`;
+        promptText += `   Data: ${new Date(laudo.criadoEm).toLocaleString("pt-BR")}\n`;
+        promptText += `   Resumo: ${laudo.texto.substring(0, 200)}...\n\n`;
+      });
+    }
+
+    promptText += `INSTRUÇÕES PARA O RELATÓRIO FINAL:\n`;
+    promptText += `- Estruture em: Resumo Executivo, Análise Consolidada, Conclusões Finais, Recomendações\n`;
+    promptText += `- Consolide todas as evidências e laudos\n`;
+    promptText += `- Apresente conclusões definitivas\n`;
+    promptText += `- Sugira encaminhamentos ou recomendações\n`;
+    promptText += `- Use linguagem formal adequada\n`;
+    promptText += `- Seja conclusivo, este é o fechamento do caso`;
+
+    const textoGerado = await chamarGeminiAPI(promptText, 4096);
+
+    // Registrar no histórico
+    await Historico.create({
+      acao: "Relatório final gerado com IA",
+      usuario: userId,
+      caso: caseId,
+      detalhes: `Relatório baseado em ${evidencias.length} evidência(s) e ${laudos.length} laudo(s)`,
+    });
+
+    res.status(200).json({
+      message: "Relatório final gerado com sucesso",
+      textoGerado,
+      estatisticas: {
+        evidencias: evidencias.length,
+        laudos: laudos.length
+      }
+    });
+
+  } catch (error) {
+    console.error("[ERRO] Gerar relatório final IA:", error);
+    res.status(500).json({ 
+      error: "Erro ao gerar relatório final",
+      details: error.message 
+    });
+  }
+};
+
+// 4. Gerar Relatório Completo com IA (mais avançado)
+exports.gerarRelatorioCompleto = async (req, res) => {
   try {
     const { caseId } = req.params;
     const { titulo } = req.body;
     const userId = req.user.id;
 
     if (!titulo) {
-      return res
-        .status(400)
-        .json({ error: "Título do relatório é obrigatório." });
+      return res.status(400).json({ error: "Título é obrigatório" });
     }
 
-    // Busca dados completos do caso
+    // Buscar todos os dados do caso
     const caso = await Case.findById(caseId).populate("peritoResponsavel");
     if (!caso) return res.status(404).json({ error: "Caso não encontrado" });
 
-    // Busca todos os laudos do caso
-    const laudos = await Laudo.find({ caso: caseId })
-      .populate("autor", "name")
-      .sort({ criadoEm: -1 });
+    const evidencias = await Evidencia.find({ caso: caseId }).sort({ createdAt: -1 });
+    const laudos = await Laudo.find({ caso: caseId }).populate("autor", "name").sort({ criadoEm: -1 });
+    const vitimas = await Vitima.find({ caso: caseId });
 
-    // Busca todas as evidências do caso
-    const evidencias = await Evidencia.find({ caso: caseId }).sort({
-      createdAt: -1,
-    });
+    // Prompt mais elaborado para relatório completo
+    let promptText = `Gere um relatório pericial completo e detalhado para o seguinte caso:\n\n`;
+    
+    promptText += `DADOS GERAIS DO CASO:\n`;
+    promptText += `Título: ${caso.titulo}\n`;
+    promptText += `Número do Caso: ${caso._id}\n`;
+    promptText += `Descrição: ${caso.descricao || "Não informado"}\n`;
+    promptText += `Status Atual: ${caso.status}\n`;
+    promptText += `Perito Responsável: ${caso.peritoResponsavel?.name || "Não informado"}\n`;
+    promptText += `Data de Abertura: ${new Date(caso.createdAt).toLocaleString("pt-BR")}\n`;
+    promptText += `Data do Relatório: ${new Date().toLocaleString("pt-BR")}\n\n`;
 
-    // Verifica se há dados suficientes para gerar o relatório
-    if (laudos.length === 0 && evidencias.length === 0) {
-      return res.status(400).json({
-        error:
-          "Não há laudos nem evidências suficientes para gerar um relatório automaticamente.",
+    if (vitimas.length > 0) {
+      promptText += `VÍTIMAS ENVOLVIDAS (${vitimas.length} total):\n`;
+      vitimas.forEach((v, index) => {
+        promptText += `${index + 1}. ${v.nome} - NIC: ${v.nic}\n`;
+        promptText += `   Idade: ${v.idade || "Não informado"}\n`;
+        promptText += `   Sexo: ${v.sexo || "Não informado"}\n\n`;
       });
     }
 
-    // Gera o relatório com IA
-    const textoGerado = await gerarRelatorioComIA(caso, laudos, evidencias);
+    if (evidencias.length > 0) {
+      promptText += `EVIDÊNCIAS COLETADAS E ANALISADAS (${evidencias.length} total):\n`;
+      evidencias.forEach((ev, index) => {
+        promptText += `${index + 1}. ${ev.titulo}\n`;
+        promptText += `   Tipo: ${ev.tipo}\n`;
+        promptText += `   Descrição: ${ev.descricao}\n`;
+        promptText += `   Local de Coleta: ${ev.localColeta || "Não informado"}\n`;
+        promptText += `   Status: ${ev.status}\n`;
+        promptText += `   Data: ${new Date(ev.createdAt).toLocaleString("pt-BR")}\n\n`;
+      });
+    }
 
-    // Geração do cabeçalho automático
-    const cabecalho = `
-Relatório Final - Gerado Automaticamente com IA
+    if (laudos.length > 0) {
+      promptText += `LAUDOS PERICIAIS ELABORADOS (${laudos.length} total):\n`;
+      laudos.forEach((laudo, index) => {
+        promptText += `${index + 1}. Perito: ${laudo.autor?.name || "Não informado"}\n`;
+        promptText += `   Data de Elaboração: ${new Date(laudo.criadoEm).toLocaleString("pt-BR")}\n`;
+        promptText += `   Conteúdo Resumido: ${laudo.texto.substring(0, 300)}...\n\n`;
+      });
+    }
 
-Caso: ${caso.titulo}
-Número do Caso: ${caso._id}
-Responsável: ${caso.peritoResponsavel?.name || "Não informado"}
-Data de Abertura: ${caso.createdAt?.toLocaleDateString("pt-BR") || "N/A"}
-Data de Geração: ${new Date().toLocaleDateString("pt-BR")}
-Status: ${caso.status}
-Laudos Analisados: ${laudos.length}
-Evidências Analisadas: ${evidencias.length}
+    promptText += `INSTRUÇÕES PARA O RELATÓRIO COMPLETO:\n`;
+    promptText += `- Crie um relatório executivo detalhado e profissional\n`;
+    promptText += `- Estruture em seções claras: Introdução, Metodologia, Análise Detalhada, Correlações, Conclusões Finais, Recomendações\n`;
+    promptText += `- Faça análise correlacional entre evidências, laudos e vítimas\n`;
+    promptText += `- Apresente timeline cronológico dos eventos\n`;
+    promptText += `- Inclua análise crítica dos achados\n`;
+    promptText += `- Forneça conclusões técnicas definitivas\n`;
+    promptText += `- Sugira encaminhamentos específicos\n`;
+    promptText += `- Use linguagem técnica adequada para relatório oficial\n`;
+    promptText += `- Este é um relatório de alto nível para tomada de decisões`;
 
------------------------------
-`;
+    const textoGerado = await chamarGeminiAPI(promptText, 6144);
 
-    // Cria o relatório no banco
-    const relatorio = await RelatorioFinal.create({
-      caso: caseId,
-      criadoPor: userId,
-      titulo,
-      texto: cabecalho + "\n" + textoGerado,
-      geradoComIA: true, // Campo opcional para marcar relatórios gerados por IA
-    });
-
-    // Atualiza status do caso para "Finalizado"
-    caso.status = "finalizado";
-    await caso.save();
-
-    // Registra no histórico
+    // Registrar no histórico
     await Historico.create({
-      acao: "Relatório final gerado com IA",
+      acao: "Relatório completo gerado com IA",
       usuario: userId,
       caso: caseId,
-      detalhes: `Relatório final "${titulo}" gerado automaticamente com IA baseado em ${laudos.length} laudo(s) e ${evidencias.length} evidência(s).`,
+      detalhes: `Relatório "${titulo}" com análise de ${evidencias.length} evidência(s), ${laudos.length} laudo(s) e ${vitimas.length} vítima(s)`,
     });
 
-    res.status(201).json({
-      message: "Relatório final gerado com sucesso usando IA e caso fechado.",
-      relatorio,
-      laudosAnalisados: laudos.length,
-      evidenciasAnalisadas: evidencias.length,
+    res.status(200).json({
+      message: "Relatório completo gerado com sucesso",
+      titulo,
+      textoGerado,
+      estatisticas: {
+        evidencias: evidencias.length,
+        laudos: laudos.length,
+        vitimas: vitimas.length
+      }
     });
+
   } catch (error) {
-    console.error("[ERRO] Geração de relatório com IA:", error);
-
-    if (error.message.includes("API Gemini")) {
-      return res.status(503).json({
-        error: "Serviço de IA temporariamente indisponível.",
-        details: error.message,
-      });
-    }
-
-    res.status(500).json({
-      error: "Erro ao gerar relatório com IA.",
-      details: error.message,
+    console.error("[ERRO] Gerar relatório completo IA:", error);
+    res.status(500).json({ 
+      error: "Erro ao gerar relatório completo",
+      details: error.message 
     });
   }
 };
 
-// NOVO: Gerar resumo executivo de um caso (sem fechar o caso)
-exports.generateResumoExecutivo = async (req, res) => {
+// 5. Gerar Análise Rápida/Resumo
+exports.gerarAnaliseRapida = async (req, res) => {
   try {
     const { caseId } = req.params;
+    const userId = req.user.id;
 
-    // Busca dados do caso
-    const caso = await Case.findById(caseId).populate("peritoResponsavel");
+    const caso = await Case.findById(caseId);
     if (!caso) return res.status(404).json({ error: "Caso não encontrado" });
 
-    // Busca laudos e evidências
-    const laudos = await Laudo.find({ caso: caseId }).populate("autor", "name");
     const evidencias = await Evidencia.find({ caso: caseId });
+    const laudos = await Laudo.find({ caso: caseId });
 
-    if (laudos.length === 0 && evidencias.length === 0) {
-      return res.status(400).json({
-        error: "Não há dados suficientes para gerar um resumo.",
-      });
-    }
-
-    // Prompt específico para resumo executivo
-    let promptText = `Gere um resumo executivo conciso (máximo 500 palavras) do seguinte caso:\n\n`;
+    let promptText = `Faça uma análise rápida e concisa (máximo 300 palavras) do seguinte caso:\n\n`;
     promptText += `Caso: ${caso.titulo}\n`;
     promptText += `Status: ${caso.status}\n`;
     promptText += `Evidências: ${evidencias.length}\n`;
     promptText += `Laudos: ${laudos.length}\n\n`;
-    promptText += `Foque nos pontos principais, achados importantes e status atual da investigação.`;
+    promptText += `Foque nos pontos principais, status atual e próximos passos recomendados.`;
 
-    const geminiResponse = await axios.post(GEMINI_API_URL, {
-      contents: [{ parts: [{ text: promptText }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
-    });
-
-    const resumo =
-      geminiResponse.data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Erro ao gerar resumo";
-
-    // Registra no histórico
-    await Historico.create({
-      acao: "Resumo executivo gerado",
-      usuario: req.user.id,
-      caso: caseId,
-      detalhes: `Resumo executivo gerado com IA.`,
-    });
+    const textoGerado = await chamarGeminiAPI(promptText, 1024);
 
     res.status(200).json({
-      message: "Resumo executivo gerado com sucesso.",
-      resumo,
+      message: "Análise rápida gerada",
+      analise: textoGerado,
       caso: {
         id: caso._id,
         titulo: caso.titulo,
-        status: caso.status,
-        evidencias: evidencias.length,
-        laudos: laudos.length,
-      },
+        status: caso.status
+      }
     });
+
   } catch (error) {
-    console.error("[ERRO] Geração de resumo executivo:", error);
-    res.status(500).json({ error: "Erro ao gerar resumo executivo." });
-  }
-};
-
-// Buscar relatório por caso (mantido original)
-exports.getRelatorioPorCaso = async (req, res) => {
-  try {
-    const { caseId } = req.params;
-
-    const relatorio = await RelatorioFinal.findOne({ caso: caseId }).populate(
-      "criadoPor",
-      "name"
-    );
-
-    if (!relatorio) {
-      return res
-        .status(404)
-        .json({ error: "Relatório não encontrado para este caso." });
-    }
-
-    res.status(200).json(relatorio);
-  } catch (err) {
-    console.error("[ERRO] Buscar relatório:", err);
-    res.status(500).json({ error: "Erro ao buscar relatório." });
-  }
-};
-
-// Exportar relatório PDF (mantido original)
-exports.exportarRelatorioPDF = async (req, res) => {
-  try {
-    const { caseId } = req.params;
-
-    const relatorio = await RelatorioFinal.findOne({ caso: caseId })
-      .populate("criadoPor", "name")
-      .populate("caso");
-
-    if (!relatorio) {
-      return res
-        .status(404)
-        .json({ error: "Relatório não encontrado para este caso." });
-    }
-
-    const caso = await Case.findById(caseId).populate(
-      "peritoResponsavel",
-      "name"
-    );
-
-    // Cria o PDF
-    const doc = new PDFDocument();
-
-    // Cabeçalhos da resposta HTTP
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="relatorio_caso_${caso._id}.pdf"`
-    );
-    res.setHeader("Content-Type", "application/pdf");
-
-    // Pipe o PDF direto pra resposta
-    doc.pipe(res);
-
-    // Conteúdo do PDF
-    doc.fontSize(18).text("Relatório Final", { align: "center" });
-    doc.moveDown();
-
-    doc.fontSize(12).text(`Título do Relatório: ${relatorio.titulo}`);
-    doc.text(`Caso: ${caso.titulo}`);
-    doc.text(`Número do Caso: ${caso._id}`);
-    doc.text(`Responsável: ${caso.peritoResponsavel?.name || "Não informado"}`);
-    doc.text(`Status: ${caso.status}`);
-    doc.text(
-      `Criado em: ${new Date(relatorio.criadoEm).toLocaleDateString("pt-BR")}`
-    );
-
-    // Indica se foi gerado com IA
-    if (relatorio.geradoComIA) {
-      doc.text("Gerado com: Inteligência Artificial");
-    }
-
-    doc.moveDown();
-
-    doc.text("Conteúdo:", { underline: true });
-    doc.moveDown(0.5);
-    doc.fontSize(11).text(relatorio.texto, {
-      align: "left",
+    console.error("[ERRO] Análise rápida IA:", error);
+    res.status(500).json({ 
+      error: "Erro ao gerar análise rápida",
+      details: error.message 
     });
-
-    doc.end();
-  } catch (err) {
-    console.error("[ERRO] Exportar relatório PDF:", err);
-    res.status(500).json({ error: "Erro ao exportar relatório em PDF." });
   }
 };
