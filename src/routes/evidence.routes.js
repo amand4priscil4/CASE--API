@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-
 const evidenceController = require('../controllers/evidence.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleCheck = require('../middlewares/roleCheck.middleware');
@@ -10,7 +9,7 @@ const upload = require('../middlewares/upload.middleware');
 router.post(
   '/',
   authMiddleware,
-  upload.single('arquivo'), // 🆕 esse campo tem que bater com o nome usado no `FormData` do frontend
+  upload.single('arquivo'),
   evidenceController.createEvidence
 );
 
@@ -18,8 +17,15 @@ router.post(
 router.get(
   '/',
   authMiddleware,
-  roleCheck(['admin', 'perito, assistente']),
+  roleCheck(['admin', 'perito', 'assistente']),
   evidenceController.getEvidencesByCase
+);
+
+// Buscar evidência por ID 
+router.get(
+  '/:id', 
+  authMiddleware, 
+  evidenceController.getEvidenceById
 );
 
 // EDITAR evidência
@@ -30,15 +36,5 @@ router.put(
   evidenceController.updateEvidence
 );
 
-// Rota protegida com JWT e upload via Cloudinary
-router.post(
-  '/api/evidencias',
-  authMiddleware,
-  upload.single('arquivo'),
-  evidenceController.createEvidence
-);
-
-// GET /api/evidencias/:id - Buscar evidência por ID
-router.get('/:id', auth, evidenceController.getEvidenceById);
 
 module.exports = router;
