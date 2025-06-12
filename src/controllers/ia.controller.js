@@ -1,7 +1,7 @@
 // controllers/ia.controller.js
 const axios = require("axios");
 const Case = require("../models/case.model");
-const Evidencia = require("../models/evidencia.model");
+const Evidencia = require("../models/evidence.model");
 const Vitima = require("../models/vitima.model");
 const Laudo = require("../models/laudo.model");
 const Historico = require("../models/historico.model");
