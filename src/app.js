@@ -6,7 +6,7 @@ const { swaggerSpec } = require('../swagger');
 const app = express();
 
 // Configuração do MongoDB
-const uri = "mongodb+srv://mongodb+srv://amandapriscilaa15:S99rV4gzO6u9MYaw@cluster0.sd5eblw.mongodb.net/olin?retryWrites=true&w=majority&appName=Cluster0";
+const uri = "mongodb+srv://amandapriscilaa15:S99rV4gzO6u9MYaw@cluster0.sd5eblw.mongodb.net/olin?retryWrites=true&w=majority&appName=Cluster0";
 
 mongoose
  .connect(uri, {
