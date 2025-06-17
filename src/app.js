@@ -18,18 +18,23 @@ mongoose
 
 // Middleware para habilitar o CORS
 app.use(
- cors({
-   origin: [
-     'http://127.0.0.1:5500', 
-     'http://localhost:3000',
-     'http://localhost:5173',
-     'https://sistema-olin.netlify.app',
-     'https://opulent-capybara-5gw9g7p49q734xwj-5173.app.github.dev'
-   ],
-   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-   allowedHeaders: ['Content-Type', 'Authorization'],
-   credentials: true
- })
+  cors({
+    origin: [
+      'http://127.0.0.1:5500', 
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:5500',           // ← JÁ TEM
+      'http://localhost:8080',           // ← ADICIONE
+      'http://127.0.0.1:8080',          // ← ADICIONE  
+      'file://',                        // ← ADICIONE (para arquivo local)
+      'null',                           // ← ADICIONE (para arquivo local)
+      'https://sistema-olin.netlify.app',
+      'https://opulent-capybara-5gw9g7p49q734xwj-5173.app.github.dev'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+  })
 );
 
 // Middleware para parsing de JSON
