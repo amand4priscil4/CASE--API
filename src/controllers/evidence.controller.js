@@ -136,3 +136,36 @@ exports.updateEvidence = async (req, res) => {
     res.status(500).json({ message: 'Erro ao atualizar evidência.' });
   }
 };
+
+/*
+|--------------------------------------------------------------------------
+| Buscar evidência por ID
+|--------------------------------------------------------------------------
+*/
+exports.getEvidenceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: 'ID da evidência não informado.' });
+    }
+
+    // Busca evidência pelo ID
+    const evidencia = await Evidence.findById(id);
+
+    if (!evidencia) {
+      return res.status(404).json({ message: 'Evidência não encontrada.' });
+    }
+
+    res.status(200).json(evidencia);
+  } catch (error) {
+    console.error('[ERRO] Buscar evidência por ID:', error);
+    
+    // Tratamento específico para ID inválido
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'ID da evidência inválido.' });
+    }
+    
+    res.status(500).json({ message: 'Erro ao buscar evidência.' });
+  }
+};

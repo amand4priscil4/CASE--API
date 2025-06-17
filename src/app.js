@@ -54,6 +54,7 @@ const vitimaRoutes = require('./routes/vitima.routes');
 const laudoOdontologicoRoutes = require('./routes/laudoOdontologico.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const marcacaoRoutes = require('./routes/marcacao.routes');
+const iaRoutes = require('./routes/ia.routes');
 
 // Configuração das rotas
 app.use('/api', authRoutes); // /api/login
@@ -68,6 +69,7 @@ app.use('/api/vitimas', vitimaRoutes); // /api/vitimas
 app.use('/api/laudos-odontologicos', laudoOdontologicoRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/marcacoes', marcacaoRoutes);
+app.use('/api/ia', iaRoutes);
 
 // Rota de teste
 app.get('/', (req, res) => {
